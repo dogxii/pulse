@@ -77,6 +77,31 @@ export function isAuthenticated(): boolean {
 }
 
 /**
+ * 解析响应内容，处理 JSON 和非 JSON 响应
+ */
+async function parseResponse<T>(response: Response): Promise<T> {
+	const contentType = response.headers.get("content-type") || "";
+
+	// 检查是否为 JSON 响应
+	if (!contentType.includes("application/json")) {
+		// 非 JSON 响应（如 HTML 错误页面）
+		const text = await response.text();
+
+		// 检测是否为 HTML 响应（本地开发时 Vite 可能返回 index.html）
+		if (text.startsWith("<!") || text.startsWith("<html")) {
+			throw new APIError(
+				"API 端点不可用，请确保后端服务已启动（使用 wrangler pages dev）",
+				503,
+			);
+		}
+
+		throw new APIError(`非预期的响应格式: ${text.substring(0, 100)}`, 500);
+	}
+
+	return response.json() as Promise<T>;
+}
+
+/**
  * 通用 fetch 封装，自动携带认证令牌
  */
 async function fetchAPI<T>(
@@ -100,21 +125,36 @@ async function fetchAPI<T>(
 		headers["Content-Type"] = "application/json";
 	}
 
-	const response = await fetch(url, {
-		...options,
-		headers,
-	});
+	let response: Response;
+
+	try {
+		response = await fetch(url, {
+			...options,
+			headers,
+		});
+	} catch (error) {
+		// 网络错误或请求被阻止
+		throw new APIError("网络请求失败，请检查网络连接或后端服务是否运行", 0);
+	}
 
 	// 处理非 2xx 响应
 	if (!response.ok) {
-		const errorData = (await response.json().catch(() => ({}))) as APIResponse;
-		throw new APIError(
-			errorData.error || `HTTP ${response.status}: ${response.statusText}`,
-			response.status,
-		);
+		try {
+			const errorData = await parseResponse<APIResponse>(response);
+			throw new APIError(
+				errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+				response.status,
+			);
+		} catch (e) {
+			if (e instanceof APIError) throw e;
+			throw new APIError(
+				`HTTP ${response.status}: ${response.statusText}`,
+				response.status,
+			);
+		}
 	}
 
-	return response.json() as Promise<T>;
+	return parseResponse<T>(response);
 }
 
 /**
@@ -317,13 +357,23 @@ export const uploads = {
 		});
 
 		if (!response.ok) {
-			const errorData = (await response
-				.json()
-				.catch(() => ({}))) as APIResponse;
-			throw new APIError(
-				errorData.error || `上传失败: ${response.statusText}`,
-				response.status,
-			);
+			const contentType = response.headers.get("content-type") || "";
+			if (contentType.includes("application/json")) {
+				const errorData = (await response
+					.json()
+					.catch(() => ({}))) as APIResponse;
+				throw new APIError(
+					errorData.error || `上传失败: ${response.statusText}`,
+					response.status,
+				);
+			} else {
+				throw new APIError(`上传失败: ${response.statusText}`, response.status);
+			}
+		}
+
+		const contentType = response.headers.get("content-type") || "";
+		if (!contentType.includes("application/json")) {
+			throw new APIError("上传响应格式错误", 500);
 		}
 
 		const result = (await response.json()) as APIResponse<UploadResponse>;

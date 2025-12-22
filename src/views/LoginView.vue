@@ -19,7 +19,7 @@ const handleLogin = () => {
         <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight mb-2">
           Pulse
         </h1>
-        <p class="text-gray-500 dark:text-gray-400">Share your thoughts with the world</p>
+        <p class="text-gray-500 dark:text-gray-400">与世界分享你的想法!</p>
       </div>
 
       <!-- Login Card -->
@@ -29,7 +29,7 @@ const handleLogin = () => {
         </h2>
 
         <p class="text-gray-500 dark:text-gray-400 text-center text-sm mb-8">
-          Sign in with your GitHub account to start sharing and connecting with others.
+          使用您的 GitHub 帐户登录，开始与他人共享和联系。
         </p>
 
         <!-- Error Message -->
@@ -42,9 +42,9 @@ const handleLogin = () => {
 
         <!-- GitHub Login Button -->
         <button
-          @click="handleLogin"
-          :disabled="authStore.isLoading"
           class="w-full flex items-center justify-center gap-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-6 py-3.5 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-lg shadow-gray-200 dark:shadow-gray-950/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          :disabled="authStore.isLoading"
+          @click="handleLogin"
         >
           <Loader2 v-if="authStore.isLoading" :size="20" class="animate-spin" />
           <Github v-else :size="20" />
