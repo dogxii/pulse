@@ -1,52 +1,86 @@
 <script setup lang="ts">
+// 用户主页视图
+// 显示用户资料、帖子列表，支持编辑个人简介
+
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Loader2, AlertCircle, Calendar, Edit3, Check, X } from 'lucide-vue-next'
 import { formatDistanceToNow, format } from 'date-fns'
+import { zhCN } from 'date-fns/locale'
 import MainLayout from '../layouts/MainLayout.vue'
 import PostCard from '../components/PostCard.vue'
 import { useAuthStore } from '../stores/auth'
 import { users as usersApi, posts as postsApi } from '../services/api'
 import type { User, Post } from '../types'
 
+// ========== Router & Store ==========
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
-// State
+// ========== 状态 ==========
+
+// 当前查看的用户
 const user = ref<User | null>(null)
+// 用户的帖子列表
 const userPosts = ref<Post[]>([])
+// 所有帖子（用于热力图）
+const allPosts = ref<Post[]>([])
+// 所有用户列表
 const allUsers = ref<User[]>([])
+// 用户加载状态
 const isLoadingUser = ref(true)
+// 帖子加载状态
 const isLoadingPosts = ref(true)
+// 错误信息
 const error = ref<string | null>(null)
 
-// Edit mode
+// 编辑模式
 const isEditing = ref(false)
 const editBio = ref('')
 const isSaving = ref(false)
 
-// Computed
+// ========== 计算属性 ==========
+
+/**
+ * 用户名（从路由参数获取）
+ */
 const username = computed(() => route.params.username as string)
+
+/**
+ * 是否为自己的主页
+ */
 const isOwnProfile = computed(() => authStore.currentUser?.username === username.value)
+
+/**
+ * 格式化加入日期
+ */
 const joinedDate = computed(() => {
   if (!user.value?.joined_at) return ''
   try {
-    return format(new Date(user.value.joined_at), 'MMMM yyyy')
+    return format(new Date(user.value.joined_at), 'yyyy年M月', { locale: zhCN })
   } catch {
     return ''
   }
 })
+
+/**
+ * 最后活跃时间文本
+ */
 const lastActiveText = computed(() => {
-  if (!user.value?.last_post_at) return 'No posts yet'
+  if (!user.value?.last_post_at) return '暂无动态'
   try {
-    return `Last active ${formatDistanceToNow(new Date(user.value.last_post_at), { addSuffix: true })}`
+    return `最近活跃 ${formatDistanceToNow(new Date(user.value.last_post_at), { addSuffix: true, locale: zhCN })}`
   } catch {
-    return 'No posts yet'
+    return '暂无动态'
   }
 })
 
-// Fetch user data
+// ========== 方法 ==========
+
+/**
+ * 获取用户信息
+ */
 async function fetchUser() {
   isLoadingUser.value = true
   error.value = null
@@ -54,54 +88,68 @@ async function fetchUser() {
   try {
     user.value = await usersApi.get(username.value)
   } catch (e) {
-    console.error('Error fetching user:', e)
-    error.value = e instanceof Error ? e.message : 'User not found'
+    // eslint-disable-next-line no-console
+    console.error('获取用户信息失败:', e)
+    error.value = e instanceof Error ? e.message : '用户不存在'
     user.value = null
   } finally {
     isLoadingUser.value = false
   }
 }
 
-// Fetch user's posts
-async function fetchUserPosts() {
+/**
+ * 获取用户的帖子和所有帖子
+ */
+async function fetchPosts() {
   if (!user.value) return
 
   isLoadingPosts.value = true
 
   try {
-    // Fetch all posts and filter by user
-    // In a real app, you'd have a dedicated endpoint for user posts
-    const response = await postsApi.list({ limit: 50 })
+    // 获取所有帖子（用于热力图和筛选当前用户帖子）
+    const response = await postsApi.list({ limit: 100 })
+    allPosts.value = response.items
+    // 筛选当前用户的帖子
     userPosts.value = response.items.filter(p => p.user_id === user.value?.id)
   } catch (e) {
-    console.error('Error fetching user posts:', e)
+    // eslint-disable-next-line no-console
+    console.error('获取帖子失败:', e)
   } finally {
     isLoadingPosts.value = false
   }
 }
 
-// Fetch all users for sidebar
+/**
+ * 获取所有用户列表
+ */
 async function fetchAllUsers() {
   try {
     allUsers.value = await usersApi.list()
   } catch (e) {
-    console.error('Error fetching users:', e)
+    // eslint-disable-next-line no-console
+    console.error('获取用户列表失败:', e)
   }
 }
 
-// Start editing bio
+/**
+ * 开始编辑个人简介
+ */
 function startEditing() {
   editBio.value = user.value?.bio || ''
   isEditing.value = true
 }
 
-// Cancel editing
+/**
+ * 取消编辑
+ */
 function cancelEditing() {
   isEditing.value = false
   editBio.value = ''
 }
 
-// Save bio
+/**
+ * 保存个人简介
+ */
 async function saveBio() {
   if (!user.value || !authStore.currentUser) return
 
@@ -116,13 +164,16 @@ async function saveBio() {
     authStore.updateUserLocally({ bio: updatedUser.bio })
     isEditing.value = false
   } catch (e) {
-    console.error('Error saving bio:', e)
+    // eslint-disable-next-line no-console
+    console.error('保存个人简介失败:', e)
   } finally {
     isSaving.value = false
   }
 }
 
-// Handle like toggle
+/**
+ * 处理帖子点赞
+ */
 async function handleLikeToggle(postId: string) {
   if (!authStore.isLoggedIn) {
     router.push('/login')
@@ -131,23 +182,36 @@ async function handleLikeToggle(postId: string) {
 
   try {
     const result = await postsApi.toggleLike(postId)
+    // 更新用户帖子列表
     const postIndex = userPosts.value.findIndex(p => p.id === postId)
     const post = userPosts.value[postIndex]
     if (postIndex !== -1 && post) {
       post.likes = result.likes
     }
+    // 同时更新所有帖子列表（用于热力图数据一致性）
+    const allPostIndex = allPosts.value.findIndex(p => p.id === postId)
+    const allPost = allPosts.value[allPostIndex]
+    if (allPostIndex !== -1 && allPost) {
+      allPost.likes = result.likes
+    }
   } catch (e) {
-    console.error('Error toggling like:', e)
+    // eslint-disable-next-line no-console
+    console.error('点赞切换失败:', e)
   }
 }
 
-// Handle post delete
+/**
+ * 处理帖子删除
+ */
 async function handlePostDelete(postId: string) {
   try {
     await postsApi.delete(postId)
+    // 从用户帖子列表移除
     userPosts.value = userPosts.value.filter(p => p.id !== postId)
+    // 从所有帖子列表移除
+    allPosts.value = allPosts.value.filter(p => p.id !== postId)
 
-    // Update post count
+    // 更新帖子数
     if (user.value) {
       user.value.post_count = Math.max(0, user.value.post_count - 1)
     }
@@ -158,64 +222,76 @@ async function handlePostDelete(postId: string) {
       })
     }
   } catch (e) {
-    console.error('Error deleting post:', e)
+    // eslint-disable-next-line no-console
+    console.error('删除帖子失败:', e)
   }
 }
 
-// Watch for username changes
+// ========== 监听器 ==========
+
+// 监听用户名变化，重新加载数据
 watch(
   () => route.params.username,
   async newUsername => {
     if (newUsername) {
       await fetchUser()
       if (user.value) {
-        await fetchUserPosts()
+        await fetchPosts()
       }
     }
   }
 )
 
-// Initialize
+// ========== 生命周期 ==========
+
 onMounted(async () => {
+  // 初始化认证
   if (!authStore.isInitialized) {
     await authStore.initialize()
   }
 
+  // 并行获取用户信息和用户列表
   await Promise.all([fetchUser(), fetchAllUsers()])
 
+  // 获取帖子
   if (user.value) {
-    await fetchUserPosts()
+    await fetchPosts()
   }
 })
 </script>
 
 <template>
-  <MainLayout :current-user="authStore.currentUser" :all-users="allUsers">
-    <!-- Loading State -->
+  <MainLayout
+    :current-user="authStore.currentUser"
+    :all-users="allUsers"
+    :posts="allPosts"
+    :is-loading="authStore.isLoading && !authStore.isInitialized"
+  >
+    <!-- 加载状态 -->
     <div v-if="isLoadingUser" class="py-20 text-center">
       <Loader2 class="w-8 h-8 animate-spin text-gray-400 mx-auto mb-4" />
-      <p class="text-gray-500">Loading profile...</p>
+      <p class="text-gray-500">正在加载...</p>
     </div>
 
-    <!-- Error State -->
+    <!-- 错误状态 -->
     <div v-else-if="error" class="py-20 text-center bg-white rounded-3xl">
       <AlertCircle class="w-12 h-12 text-red-400 mx-auto mb-4" />
-      <h2 class="text-lg font-semibold text-gray-900 mb-2">User not found</h2>
+      <h2 class="text-lg font-semibold text-gray-900 mb-2">用户不存在</h2>
       <p class="text-gray-500 text-sm mb-6">{{ error }}</p>
       <router-link
         to="/"
         class="px-5 py-2.5 bg-gray-900 text-white rounded-xl font-medium text-sm hover:bg-gray-800 transition-colors"
       >
-        Go Home
+        返回首页
       </router-link>
     </div>
 
-    <!-- Profile Content -->
+    <!-- 用户主页内容 -->
     <div v-else-if="user">
-      <!-- Profile Header -->
+      <!-- 用户资料卡片 -->
       <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm mb-8">
         <div class="flex flex-col md:flex-row md:items-start gap-6">
-          <!-- Avatar -->
+          <!-- 头像 -->
           <div
             class="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-gray-100 flex-shrink-0 mx-auto md:mx-0"
           >
@@ -226,7 +302,7 @@ onMounted(async () => {
             />
           </div>
 
-          <!-- Info -->
+          <!-- 用户信息 -->
           <div class="flex-1 text-center md:text-left">
             <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mb-3">
               <h1 class="text-2xl font-bold text-gray-900">@{{ user.username }}</h1>
@@ -235,17 +311,18 @@ onMounted(async () => {
                   v-if="user.is_admin"
                   class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full"
                 >
-                  Admin
+                  管理员
                 </span>
               </div>
             </div>
 
-            <!-- Bio -->
+            <!-- 个人简介 -->
             <div class="mb-4">
+              <!-- 编辑模式 -->
               <div v-if="isEditing" class="max-w-md mx-auto md:mx-0">
                 <textarea
                   v-model="editBio"
-                  placeholder="Write something about yourself..."
+                  placeholder="写点什么介绍一下自己..."
                   rows="3"
                   maxlength="500"
                   class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
@@ -254,16 +331,16 @@ onMounted(async () => {
                   <span class="text-xs text-gray-400">{{ editBio.length }}/500</span>
                   <div class="flex gap-2">
                     <button
-                      @click="cancelEditing"
-                      :disabled="isSaving"
                       class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                      :disabled="isSaving"
+                      @click="cancelEditing"
                     >
                       <X :size="18" />
                     </button>
                     <button
-                      @click="saveBio"
-                      :disabled="isSaving"
                       class="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                      :disabled="isSaving"
+                      @click="saveBio"
                     >
                       <Loader2 v-if="isSaving" :size="18" class="animate-spin" />
                       <Check v-else :size="18" />
@@ -271,51 +348,52 @@ onMounted(async () => {
                   </div>
                 </div>
               </div>
+              <!-- 显示模式 -->
               <div v-else class="flex items-start gap-2 justify-center md:justify-start">
                 <p class="text-gray-600" :class="{ 'text-gray-400 italic': !user.bio }">
-                  {{ user.bio || 'No bio yet' }}
+                  {{ user.bio || '暂无简介' }}
                 </p>
                 <button
                   v-if="isOwnProfile"
-                  @click="startEditing"
                   class="p-1 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-                  title="Edit bio"
+                  title="编辑简介"
+                  @click="startEditing"
                 >
                   <Edit3 :size="14" />
                 </button>
               </div>
             </div>
 
-            <!-- Stats -->
+            <!-- 统计信息 -->
             <div class="flex items-center justify-center md:justify-start gap-6 text-sm">
               <div>
                 <span class="font-bold text-gray-900">{{ user.post_count }}</span>
-                <span class="text-gray-500 ml-1">posts</span>
+                <span class="text-gray-500 ml-1">动态</span>
               </div>
               <div class="flex items-center gap-1 text-gray-500">
                 <Calendar :size="14" />
-                <span>Joined {{ joinedDate }}</span>
+                <span>{{ joinedDate }} 加入</span>
               </div>
             </div>
 
-            <!-- Last Active -->
+            <!-- 最近活跃 -->
             <p class="mt-2 text-xs text-gray-400">{{ lastActiveText }}</p>
           </div>
         </div>
       </div>
 
-      <!-- Posts Section -->
+      <!-- 帖子区域 -->
       <div class="mb-6">
-        <h2 class="text-lg font-bold text-gray-900 mb-4">Posts</h2>
+        <h2 class="text-lg font-bold text-gray-900 mb-4">动态</h2>
       </div>
 
-      <!-- Loading Posts -->
+      <!-- 帖子加载中 -->
       <div v-if="isLoadingPosts" class="py-12 text-center">
         <Loader2 class="w-6 h-6 animate-spin text-gray-400 mx-auto mb-2" />
-        <p class="text-gray-400 text-sm">Loading posts...</p>
+        <p class="text-gray-400 text-sm">加载动态中...</p>
       </div>
 
-      <!-- Empty Posts -->
+      <!-- 无帖子 -->
       <div v-else-if="userPosts.length === 0" class="py-12 text-center bg-white rounded-3xl">
         <div
           class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
@@ -330,18 +408,18 @@ onMounted(async () => {
           </svg>
         </div>
         <p class="text-gray-500">
-          {{ isOwnProfile ? "You haven't posted anything yet" : 'No posts yet' }}
+          {{ isOwnProfile ? '你还没有发布任何动态' : '暂无动态' }}
         </p>
         <router-link
           v-if="isOwnProfile"
           to="/new"
           class="inline-block mt-4 px-5 py-2.5 bg-gray-900 text-white rounded-xl font-medium text-sm hover:bg-gray-800 transition-colors"
         >
-          Create Your First Post
+          发布第一条动态
         </router-link>
       </div>
 
-      <!-- Posts List -->
+      <!-- 帖子列表 -->
       <div v-else class="space-y-6">
         <PostCard
           v-for="post in userPosts"

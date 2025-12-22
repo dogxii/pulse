@@ -1,12 +1,22 @@
 // R2 存储帮助函数
 
-import type { Env, Post, PostsIndex, User, UsersIndex } from "./types";
+import type { Comment, Env, Post, PostsIndex, User, UsersIndex } from "./types";
+
+// 评论索引类型
+interface CommentsIndex {
+	comment_ids: string[];
+	total_count: number;
+	updated_at: string;
+}
 
 // R2 存储键名常量
 const KEYS = {
 	USERS_INDEX: "data/users.json",
 	POSTS_INDEX: "data/posts_index.json",
 	POST: (id: string) => `data/posts/${id}.json`,
+	COMMENTS_INDEX: (postId: string) => `data/comments/${postId}/index.json`,
+	COMMENT: (postId: string, commentId: string) =>
+		`data/comments/${postId}/${commentId}.json`,
 	UPLOAD: (year: string, filename: string) => `uploads/${year}/${filename}`,
 };
 
@@ -323,6 +333,149 @@ export async function getUpload(
 	} catch (error) {
 		console.error("获取上传文件时出错:", error);
 		return null;
+	}
+}
+
+// ============ 初始化存储 ============
+
+// ============ 评论相关函数 ============
+
+/**
+ * 获取帖子的评论索引
+ */
+export async function getCommentsIndex(
+	env: Env,
+	postId: string,
+): Promise<CommentsIndex> {
+	const index = await readJSON<CommentsIndex>(
+		env.R2_BUCKET,
+		KEYS.COMMENTS_INDEX(postId),
+	);
+	return (
+		index || {
+			comment_ids: [],
+			total_count: 0,
+			updated_at: new Date().toISOString(),
+		}
+	);
+}
+
+/**
+ * 获取单个评论
+ */
+export async function getComment(
+	env: Env,
+	postId: string,
+	commentId: string,
+): Promise<Comment | null> {
+	return readJSON<Comment>(env.R2_BUCKET, KEYS.COMMENT(postId, commentId));
+}
+
+/**
+ * 获取帖子的所有评论
+ */
+export async function getComments(
+	env: Env,
+	postId: string,
+): Promise<Comment[]> {
+	const index = await getCommentsIndex(env, postId);
+
+	// 并行获取所有评论
+	const comments = await Promise.all(
+		index.comment_ids.map((id) => getComment(env, postId, id)),
+	);
+
+	// 过滤掉空值
+	const validComments = comments.filter((c): c is Comment => c !== null);
+
+	// 填充用户数据
+	const users = await getUsers(env);
+	const usersMap = new Map(users.map((u) => [u.id, u]));
+
+	for (const comment of validComments) {
+		comment.user = usersMap.get(comment.user_id);
+	}
+
+	return validComments;
+}
+
+/**
+ * 创建评论
+ */
+export async function createComment(
+	env: Env,
+	comment: Comment,
+): Promise<boolean> {
+	const { post_id, id } = comment;
+
+	// 写入评论数据
+	const commentSuccess = await writeJSON(
+		env.R2_BUCKET,
+		KEYS.COMMENT(post_id, id),
+		comment,
+	);
+	if (!commentSuccess) return false;
+
+	// 更新评论索引
+	const index = await getCommentsIndex(env, post_id);
+	index.comment_ids.unshift(id); // 最新的在前
+	index.total_count = index.comment_ids.length;
+	index.updated_at = new Date().toISOString();
+
+	const indexSuccess = await writeJSON(
+		env.R2_BUCKET,
+		KEYS.COMMENTS_INDEX(post_id),
+		index,
+	);
+	if (!indexSuccess) return false;
+
+	// 更新帖子的评论数
+	const post = await getPost(env, post_id);
+	if (post) {
+		await updatePost(env, post_id, {
+			comments_count: index.total_count,
+		});
+	}
+
+	return true;
+}
+
+/**
+ * 删除评论
+ */
+export async function deleteComment(
+	env: Env,
+	postId: string,
+	commentId: string,
+): Promise<boolean> {
+	try {
+		// 从 R2 中删除评论
+		await env.R2_BUCKET.delete(KEYS.COMMENT(postId, commentId));
+
+		// 更新评论索引
+		const index = await getCommentsIndex(env, postId);
+		index.comment_ids = index.comment_ids.filter((id) => id !== commentId);
+		index.total_count = index.comment_ids.length;
+		index.updated_at = new Date().toISOString();
+
+		const indexSuccess = await writeJSON(
+			env.R2_BUCKET,
+			KEYS.COMMENTS_INDEX(postId),
+			index,
+		);
+
+		// 更新帖子的评论数
+		const post = await getPost(env, postId);
+		if (post) {
+			await updatePost(env, postId, {
+				comments_count: index.total_count,
+			});
+		}
+
+		return indexSuccess;
+	} catch (error) {
+		console.error("删除评论时出错:", error);
+		return false;
 	}
 }
 

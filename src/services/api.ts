@@ -1,7 +1,7 @@
 // 前端 API 服务
 // 封装 fetch 请求，与 Cloudflare Functions 后端交互
 
-import type { Post, User } from "../types";
+import type { Comment, Post, User } from "../types";
 
 // API 响应类型
 interface APIResponse<T = unknown> {
@@ -32,6 +32,11 @@ interface UploadResponse {
 	filename: string;
 	size: number;
 	type: string;
+}
+
+// 删除响应类型
+interface DeleteResponse {
+	deleted: boolean;
 }
 
 // API 配置
@@ -337,12 +342,60 @@ export const uploads = {
 	},
 };
 
+// ============ 评论 API ============
+
+export const comments = {
+	/**
+	 * 获取帖子的评论列表
+	 */
+	async list(postId: string): Promise<Comment[]> {
+		const response = await fetchAPI<APIResponse<Comment[]>>(
+			`/posts/${postId}/comments`,
+		);
+		if (!response.success || !response.data) {
+			throw new APIError(response.error || "获取评论列表失败", 400);
+		}
+		return response.data;
+	},
+
+	/**
+	 * 创建新评论
+	 */
+	async create(postId: string, content: string): Promise<Comment> {
+		const response = await fetchAPI<APIResponse<Comment>>(
+			`/posts/${postId}/comments`,
+			{
+				method: "POST",
+				body: JSON.stringify({ content }),
+			},
+		);
+		if (!response.success || !response.data) {
+			throw new APIError(response.error || "创建评论失败", 400);
+		}
+		return response.data;
+	},
+
+	/**
+	 * 删除评论
+	 */
+	async delete(postId: string, commentId: string): Promise<void> {
+		const response = await fetchAPI<APIResponse<DeleteResponse>>(
+			`/posts/${postId}/comments/${commentId}`,
+			{ method: "DELETE" },
+		);
+		if (!response.success) {
+			throw new APIError(response.error || "删除评论失败", 400);
+		}
+	},
+};
+
 // 默认导出所有 API 模块
 export default {
 	auth,
 	posts,
 	users,
 	uploads,
+	comments,
 	setToken,
 	removeToken,
 	isAuthenticated,
