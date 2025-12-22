@@ -15,6 +15,7 @@ const images = ref<string[]>([])
 const isSubmitting = ref(false)
 const isUploading = ref(false)
 const error = ref<string | null>(null)
+const isDragging = ref(false)
 
 // Character limit
 const MAX_CONTENT_LENGTH = 5000
@@ -28,15 +29,12 @@ const canSubmit = computed(() => {
 })
 const canUploadMore = computed(() => images.value.length < MAX_IMAGES)
 
-// Handle image upload
-async function handleImageUpload(event: globalThis.Event) {
-  const input = event.target as globalThis.HTMLInputElement
-  if (!input.files || input.files.length === 0) return
+// Allowed image types
+const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif']
 
-  const file = input.files[0] as globalThis.File
-
+// Upload a single file
+async function uploadFile(file: globalThis.File) {
   // Validate file type
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif']
   if (!allowedTypes.includes(file.type)) {
     error.value = 'Please select a valid image file (JPEG, PNG, GIF, WebP, or AVIF)'
     return
@@ -45,6 +43,12 @@ async function handleImageUpload(event: globalThis.Event) {
   // Validate file size (5MB max)
   if (file.size > 5 * 1024 * 1024) {
     error.value = 'Image must be less than 5MB'
+    return
+  }
+
+  // Check if we can upload more
+  if (!canUploadMore.value) {
+    error.value = `Maximum ${MAX_IMAGES} images allowed`
     return
   }
 
@@ -58,8 +62,66 @@ async function handleImageUpload(event: globalThis.Event) {
     error.value = e instanceof Error ? e.message : 'Failed to upload image'
   } finally {
     isUploading.value = false
-    // Reset input
-    input.value = ''
+  }
+}
+
+// Handle image upload from file input
+async function handleImageUpload(event: globalThis.Event) {
+  const input = event.target as globalThis.HTMLInputElement
+  if (!input.files || input.files.length === 0) return
+
+  const file = input.files[0] as globalThis.File
+  await uploadFile(file)
+
+  // Reset input
+  input.value = ''
+}
+
+// Handle drag and drop
+function handleDragEnter(e: DragEvent) {
+  e.preventDefault()
+  e.stopPropagation()
+  if (canUploadMore.value && !isUploading.value) {
+    isDragging.value = true
+  }
+}
+
+function handleDragLeave(e: DragEvent) {
+  e.preventDefault()
+  e.stopPropagation()
+  // Only set to false if we're leaving the drop zone entirely
+  const relatedTarget = e.relatedTarget as Node | null
+  const currentTarget = e.currentTarget as Node
+  if (!currentTarget.contains(relatedTarget)) {
+    isDragging.value = false
+  }
+}
+
+function handleDragOver(e: DragEvent) {
+  e.preventDefault()
+  e.stopPropagation()
+}
+
+async function handleDrop(e: DragEvent) {
+  e.preventDefault()
+  e.stopPropagation()
+  isDragging.value = false
+
+  if (!canUploadMore.value || isUploading.value) return
+
+  const files = e.dataTransfer?.files
+  if (!files || files.length === 0) return
+
+  // Upload only image files, up to the remaining slots
+  const remainingSlots = MAX_IMAGES - images.value.length
+  let uploadCount = 0
+
+  for (let i = 0; i < files.length && uploadCount < remainingSlots; i++) {
+    const file = files[i] as globalThis.File
+    if (allowedTypes.includes(file.type)) {
+      await uploadFile(file)
+      uploadCount++
+    }
   }
 }
 
@@ -117,10 +179,28 @@ function goBack() {
         <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">New Post</h1>
       </div>
 
-      <!-- Form Card -->
+      <!-- Form Card with Drop Zone -->
       <div
-        class="bg-white dark:bg-gray-900 rounded-3xl p-6 md:p-8 shadow-sm dark:shadow-gray-950/50"
+        class="bg-white dark:bg-gray-900 rounded-3xl p-6 md:p-8 shadow-sm dark:shadow-gray-950/50 relative"
+        :class="{ 'ring-2 ring-blue-400 ring-offset-2 dark:ring-offset-gray-900': isDragging }"
+        @dragenter="handleDragEnter"
+        @dragleave="handleDragLeave"
+        @dragover="handleDragOver"
+        @drop="handleDrop"
       >
+        <!-- Drag Overlay -->
+        <div
+          v-if="isDragging"
+          class="absolute inset-0 bg-blue-50/90 dark:bg-blue-950/90 rounded-3xl flex items-center justify-center z-10 pointer-events-none"
+        >
+          <div class="text-center">
+            <Image :size="48" class="mx-auto mb-3 text-blue-500 dark:text-blue-400" />
+            <p class="text-blue-600 dark:text-blue-400 font-medium">Drop image here</p>
+            <p class="text-blue-500/70 dark:text-blue-500/70 text-sm mt-1">
+              {{ images.length }}/{{ MAX_IMAGES }} images
+            </p>
+          </div>
+        </div>
         <!-- User Info -->
         <div class="flex items-center gap-3 mb-6">
           <div class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
