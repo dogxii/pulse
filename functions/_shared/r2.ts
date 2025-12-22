@@ -241,6 +241,12 @@ export async function updatePost(
  */
 export async function deletePost(env: Env, id: string): Promise<boolean> {
 	try {
+		// 先获取帖子信息以获取作者 ID
+		const post = await getPost(env, id);
+		if (!post) return false;
+
+		const userId = post.user_id;
+
 		// 从 R2 中删除
 		await env.R2_BUCKET.delete(KEYS.POST(id));
 
@@ -250,7 +256,22 @@ export async function deletePost(env: Env, id: string): Promise<boolean> {
 		index.total_count = index.post_ids.length;
 		index.updated_at = new Date().toISOString();
 
-		return writeJSON(env.R2_BUCKET, KEYS.POSTS_INDEX, index);
+		const indexSuccess = await writeJSON(
+			env.R2_BUCKET,
+			KEYS.POSTS_INDEX,
+			index,
+		);
+		if (!indexSuccess) return false;
+
+		// 更新用户的帖子数量
+		const user = await getUser(env, userId);
+		if (user) {
+			await updateUser(env, userId, {
+				post_count: Math.max(0, (user.post_count || 0) - 1),
+			});
+		}
+
+		return true;
 	} catch (error) {
 		console.error("删除帖子时出错:", error);
 		return false;
