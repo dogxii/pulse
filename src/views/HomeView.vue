@@ -120,7 +120,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <MainLayout :current-user="currentUser" :all-users="allUsers">
+  <MainLayout :current-user="currentUser" :all-users="allUsers" :posts="posts">
     <!-- Feed Header -->
     <div class="mb-8 flex items-center justify-between">
       <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Latest Pulse</h1>

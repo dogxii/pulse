@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Heart, MessageCircle, Trash2, Edit3 } from 'lucide-vue-next'
 import { formatDistanceToNow } from 'date-fns'
+import MarkdownRenderer from './MarkdownRenderer.vue'
 import type { Post } from '../types'
 
 const props = defineProps<{
@@ -13,7 +14,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   like: [postId: string]
   delete: [postId: string]
-  edit: [postId: string]
 }>()
 
 const router = useRouter()
@@ -47,13 +47,13 @@ const handleLikeClick = () => {
 }
 
 const handleDeleteClick = () => {
-  if (window.confirm('Are you sure you want to delete this post?')) {
+  if (globalThis.window.confirm('Are you sure you want to delete this post?')) {
     emit('delete', props.post.id)
   }
 }
 
 const handleEditClick = () => {
-  emit('edit', props.post.id)
+  router.push(`/post/${props.post.id}/edit`)
 }
 
 const navigateToProfile = () => {
@@ -112,11 +112,9 @@ const navigateToProfile = () => {
       </div>
     </div>
 
-    <!-- Content -->
+    <!-- Content with Markdown Rendering -->
     <div class="mb-6">
-      <p class="text-gray-800 text-lg leading-relaxed whitespace-pre-wrap font-medium">
-        {{ post.content }}
-      </p>
+      <MarkdownRenderer :content="post.content" class="text-gray-800 text-lg font-medium" />
 
       <!-- Images (if any) -->
       <div

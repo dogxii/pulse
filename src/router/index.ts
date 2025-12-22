@@ -16,6 +16,13 @@ const router = createRouter({
 			component: () => import("../views/PostDetailView.vue"),
 		},
 		{
+			path: "/post/:id/edit",
+			name: "post-edit",
+			// Lazy load post edit page
+			component: () => import("../views/EditPostView.vue"),
+			meta: { requiresAuth: true },
+		},
+		{
 			path: "/u/:username",
 			name: "profile",
 			// Lazy load profile page

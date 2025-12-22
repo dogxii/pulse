@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ArrowLeft, Image, X, Loader2 } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import { posts as postsApi, uploads } from '../services/api'
+import MarkdownEditor from '../components/MarkdownEditor.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -32,7 +33,7 @@ async function handleImageUpload(event: globalThis.Event) {
   const input = event.target as globalThis.HTMLInputElement
   if (!input.files || input.files.length === 0) return
 
-  const file = input.files[0] as File
+  const file = input.files[0] as globalThis.File
 
   // Validate file type
   const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif']
@@ -146,22 +147,15 @@ function goBack() {
           {{ error }}
         </div>
 
-        <!-- Content Input -->
+        <!-- Markdown Editor -->
         <div class="mb-6">
-          <textarea
+          <MarkdownEditor
             v-model="content"
-            placeholder="What's on your mind?"
-            rows="6"
-            class="w-full px-0 py-2 text-lg text-gray-800 placeholder-gray-400 border-none focus:outline-none focus:ring-0 resize-none"
+            placeholder="What's on your mind? Markdown is supported!"
+            :max-length="MAX_CONTENT_LENGTH"
+            :min-rows="6"
             :disabled="isSubmitting"
           />
-
-          <!-- Character Count -->
-          <div class="flex justify-end">
-            <span class="text-xs" :class="isOverLimit ? 'text-red-500' : 'text-gray-400'">
-              {{ characterCount }} / {{ MAX_CONTENT_LENGTH }}
-            </span>
-          </div>
         </div>
 
         <!-- Image Previews -->
@@ -219,6 +213,22 @@ function goBack() {
             <Loader2 v-if="isSubmitting" :size="18" class="animate-spin inline mr-2" />
             {{ isSubmitting ? 'Posting...' : 'Post' }}
           </button>
+        </div>
+      </div>
+
+      <!-- Markdown Tips -->
+      <div class="mt-6 p-4 bg-white rounded-2xl shadow-sm">
+        <h3 class="text-sm font-semibold text-gray-700 mb-3">Markdown Tips</h3>
+        <div class="grid grid-cols-2 gap-2 text-xs text-gray-500">
+          <div><code class="bg-gray-100 px-1 rounded">**bold**</code> → <strong>bold</strong></div>
+          <div><code class="bg-gray-100 px-1 rounded">*italic*</code> → <em>italic</em></div>
+          <div>
+            <code class="bg-gray-100 px-1 rounded">`code`</code> →
+            <code class="bg-gray-100 px-1 rounded">code</code>
+          </div>
+          <div><code class="bg-gray-100 px-1 rounded">[link](url)</code> → link</div>
+          <div><code class="bg-gray-100 px-1 rounded"># Heading</code> → Heading</div>
+          <div><code class="bg-gray-100 px-1 rounded">> quote</code> → Quote</div>
         </div>
       </div>
     </div>

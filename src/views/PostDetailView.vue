@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Loader2, AlertCircle, Heart, MessageCircle, Send } from 'lucide-vue-next'
+import { ArrowLeft, Loader2, AlertCircle, Heart, MessageCircle, Send, Edit3 } from 'lucide-vue-next'
 import { formatDistanceToNow } from 'date-fns'
 import { useAuthStore } from '../stores/auth'
 import { posts as postsApi } from '../services/api'
+import MarkdownRenderer from '../components/MarkdownRenderer.vue'
 import type { Post } from '../types'
 
 const route = useRoute()
@@ -31,6 +32,10 @@ const formattedDate = computed(() => {
 const isLiked = computed(() => {
   if (!authStore.userId || !post.value) return false
   return post.value.likes.includes(authStore.userId)
+})
+const isAuthor = computed(() => {
+  if (!authStore.userId || !post.value) return false
+  return post.value.user_id === authStore.userId
 })
 
 // Fetch post
@@ -77,6 +82,13 @@ async function handleCommentSubmit() {
   isSubmittingComment.value = false
 }
 
+// Navigate to edit page
+function handleEdit() {
+  if (post.value) {
+    router.push(`/post/${post.value.id}/edit`)
+  }
+}
+
 // Navigation
 function goBack() {
   router.back()
@@ -101,14 +113,26 @@ onMounted(async () => {
   <div class="min-h-screen bg-gray-50/50">
     <div class="max-w-2xl mx-auto px-4 py-8">
       <!-- Header -->
-      <div class="flex items-center gap-4 mb-8">
+      <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center gap-4">
+          <button
+            @click="goBack"
+            class="p-2 rounded-xl hover:bg-white transition-colors cursor-pointer"
+          >
+            <ArrowLeft :size="20" class="text-gray-600" />
+          </button>
+          <h1 class="text-xl font-bold text-gray-900">Post</h1>
+        </div>
+
+        <!-- Edit Button (if author) -->
         <button
-          @click="goBack"
-          class="p-2 rounded-xl hover:bg-white transition-colors cursor-pointer"
+          v-if="isAuthor && post"
+          @click="handleEdit"
+          class="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-white rounded-xl transition-colors cursor-pointer"
         >
-          <ArrowLeft :size="20" class="text-gray-600" />
+          <Edit3 :size="18" />
+          <span class="text-sm font-medium">Edit</span>
         </button>
-        <h1 class="text-xl font-bold text-gray-900">Post</h1>
       </div>
 
       <!-- Loading State -->
@@ -141,7 +165,10 @@ onMounted(async () => {
               @click="navigateToProfile"
             >
               <img
-                :src="post.user?.avatar_url || `https://api.dicebear.com/9.x/micah/svg?seed=${post.user_id}`"
+                :src="
+                  post.user?.avatar_url ||
+                  `https://api.dicebear.com/9.x/micah/svg?seed=${post.user_id}`
+                "
                 :alt="post.user?.username"
                 class="w-full h-full object-cover"
               />
@@ -157,11 +184,9 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Content -->
+          <!-- Content with Markdown Rendering -->
           <div class="mb-6">
-            <p class="text-gray-800 text-xl leading-relaxed whitespace-pre-wrap">
-              {{ post.content }}
-            </p>
+            <MarkdownRenderer :content="post.content" class="text-gray-800 text-xl" />
 
             <!-- Images -->
             <div
@@ -220,7 +245,10 @@ onMounted(async () => {
           <div class="flex items-start gap-3">
             <div class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
               <img
-                :src="authStore.currentUser?.avatar_url || `https://api.dicebear.com/9.x/micah/svg?seed=${authStore.userId}`"
+                :src="
+                  authStore.currentUser?.avatar_url ||
+                  `https://api.dicebear.com/9.x/micah/svg?seed=${authStore.userId}`
+                "
                 :alt="authStore.currentUser?.username"
                 class="w-full h-full object-cover"
               />
