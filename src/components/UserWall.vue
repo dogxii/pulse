@@ -40,8 +40,12 @@ const hasPostedToday = (lastPostDate: string) => {
     <ActivityHeatmap :posts="posts || []" />
 
     <!-- 社区用户区域 -->
-    <div class="bg-white rounded-3xl p-6 shadow-sm">
-      <h3 class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4 pl-1">社区</h3>
+    <div class="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm dark:shadow-gray-950/50">
+      <h3
+        class="text-gray-400 dark:text-gray-500 text-xs font-bold uppercase tracking-widest mb-4 pl-1"
+      >
+        社区
+      </h3>
 
       <!-- 用户头像网格 -->
       <div class="grid grid-cols-4 gap-3">
@@ -53,7 +57,7 @@ const hasPostedToday = (lastPostDate: string) => {
         >
           <!-- 头像 -->
           <div
-            class="aspect-square rounded-2xl overflow-hidden bg-gray-100 transition-transform duration-200 group-hover:scale-105 ring-2 ring-transparent group-hover:ring-gray-100"
+            class="aspect-square rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 transition-transform duration-200 group-hover:scale-105 ring-2 ring-transparent group-hover:ring-gray-100 dark:group-hover:ring-gray-700"
           >
             <img
               :src="user.avatar_url"
@@ -66,26 +70,33 @@ const hasPostedToday = (lastPostDate: string) => {
           <!-- 今日活跃绿点 -->
           <div
             v-if="hasPostedToday(user.last_post_at)"
-            class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white shadow-sm"
+            class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white dark:border-gray-900 shadow-sm"
             title="今日活跃"
           />
 
           <!-- 悬浮提示 -->
           <div
-            class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-xl flex flex-col items-center gap-0.5"
+            class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-xl flex flex-col items-center gap-0.5"
           >
             <span class="font-bold">{{ user.username }}</span>
-            <span class="text-gray-400 font-normal">{{ user.post_count }} 条动态</span>
+            <span class="text-gray-400 dark:text-gray-300 font-normal"
+              >{{ user.post_count }} 条动态</span
+            >
             <!-- 箭头 -->
             <div
-              class="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"
+              class="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"
             />
           </div>
         </div>
       </div>
 
       <!-- 空状态 -->
-      <div v-if="users.length === 0" class="text-center py-8 text-gray-400 text-sm">暂无用户</div>
+      <div
+        v-if="users.length === 0"
+        class="text-center py-8 text-gray-400 dark:text-gray-500 text-sm"
+      >
+        暂无用户
+      </div>
     </div>
   </div>
 </template>

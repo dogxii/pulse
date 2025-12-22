@@ -104,24 +104,26 @@ function goBack() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50/50">
+  <div class="min-h-screen bg-gray-50/50 dark:bg-[#0f0f0f] transition-colors duration-300">
     <div class="max-w-2xl mx-auto px-4 py-8">
       <!-- Header -->
       <div class="flex items-center gap-4 mb-8">
         <button
           @click="goBack"
-          class="p-2 rounded-xl hover:bg-white transition-colors cursor-pointer"
+          class="p-2 rounded-xl hover:bg-white dark:hover:bg-gray-800 transition-colors cursor-pointer"
         >
-          <ArrowLeft :size="20" class="text-gray-600" />
+          <ArrowLeft :size="20" class="text-gray-600 dark:text-gray-400" />
         </button>
-        <h1 class="text-xl font-bold text-gray-900">New Post</h1>
+        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">New Post</h1>
       </div>
 
       <!-- Form Card -->
-      <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm">
+      <div
+        class="bg-white dark:bg-gray-900 rounded-3xl p-6 md:p-8 shadow-sm dark:shadow-gray-950/50"
+      >
         <!-- User Info -->
         <div class="flex items-center gap-3 mb-6">
-          <div class="w-10 h-10 rounded-full overflow-hidden bg-gray-100">
+          <div class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
             <img
               :src="
                 authStore.currentUser?.avatar_url ||
@@ -132,17 +134,17 @@ function goBack() {
             />
           </div>
           <div>
-            <span class="font-bold text-gray-900 text-sm">
+            <span class="font-bold text-gray-900 dark:text-gray-100 text-sm">
               {{ authStore.currentUser?.username }}
             </span>
-            <p class="text-xs text-gray-400">Posting publicly</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500">Posting publicly</p>
           </div>
         </div>
 
         <!-- Error Message -->
         <div
           v-if="error"
-          class="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm"
+          class="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 rounded-xl text-red-600 dark:text-red-400 text-sm"
         >
           {{ error }}
         </div>
@@ -151,7 +153,7 @@ function goBack() {
         <div class="mb-6">
           <MarkdownEditor
             v-model="content"
-            placeholder="What's on your mind? Markdown is supported!"
+            placeholder="What's on your mind?"
             :max-length="MAX_CONTENT_LENGTH"
             :min-rows="6"
             :disabled="isSubmitting"
@@ -165,7 +167,7 @@ function goBack() {
               <img
                 :src="img"
                 alt="Upload preview"
-                class="rounded-xl w-full h-40 object-cover bg-gray-50"
+                class="rounded-xl w-full h-40 object-cover bg-gray-50 dark:bg-gray-800"
               />
               <button
                 @click="removeImage(index)"
@@ -178,12 +180,14 @@ function goBack() {
         </div>
 
         <!-- Actions -->
-        <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+        <div
+          class="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800"
+        >
           <!-- Upload Image Button -->
           <div class="flex items-center gap-2">
             <label
               v-if="canUploadMore"
-              class="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+              class="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors cursor-pointer"
               :class="{ 'opacity-50 pointer-events-none': isUploading }"
             >
               <Loader2 v-if="isUploading" :size="18" class="animate-spin" />
@@ -199,7 +203,7 @@ function goBack() {
                 @change="handleImageUpload"
               />
             </label>
-            <span v-if="images.length > 0" class="text-xs text-gray-400">
+            <span v-if="images.length > 0" class="text-xs text-gray-400 dark:text-gray-500">
               {{ images.length }}/{{ MAX_IMAGES }} images
             </span>
           </div>
@@ -208,7 +212,7 @@ function goBack() {
           <button
             @click="handleSubmit"
             :disabled="!canSubmit"
-            class="px-6 py-2.5 bg-gray-900 text-white rounded-xl font-medium text-sm hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            class="px-6 py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-medium text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <Loader2 v-if="isSubmitting" :size="18" class="animate-spin inline mr-2" />
             {{ isSubmitting ? 'Posting...' : 'Post' }}
@@ -217,18 +221,28 @@ function goBack() {
       </div>
 
       <!-- Markdown Tips -->
-      <div class="mt-6 p-4 bg-white rounded-2xl shadow-sm">
-        <h3 class="text-sm font-semibold text-gray-700 mb-3">Markdown Tips</h3>
-        <div class="grid grid-cols-2 gap-2 text-xs text-gray-500">
-          <div><code class="bg-gray-100 px-1 rounded">**bold**</code> → <strong>bold</strong></div>
-          <div><code class="bg-gray-100 px-1 rounded">*italic*</code> → <em>italic</em></div>
+      <div class="mt-6 p-4 bg-white dark:bg-gray-900 rounded-2xl shadow-sm dark:shadow-gray-950/50">
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Markdown Tips</h3>
+        <div class="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400">
           <div>
-            <code class="bg-gray-100 px-1 rounded">`code`</code> →
-            <code class="bg-gray-100 px-1 rounded">code</code>
+            <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">**bold**</code> →
+            <strong>bold</strong>
           </div>
-          <div><code class="bg-gray-100 px-1 rounded">[link](url)</code> → link</div>
-          <div><code class="bg-gray-100 px-1 rounded"># Heading</code> → Heading</div>
-          <div><code class="bg-gray-100 px-1 rounded">> quote</code> → Quote</div>
+          <div>
+            <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">*italic*</code> →
+            <em>italic</em>
+          </div>
+          <div>
+            <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">`code`</code> →
+            <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">code</code>
+          </div>
+          <div>
+            <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">[link](url)</code> → link
+          </div>
+          <div>
+            <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded"># Heading</code> → Heading
+          </div>
+          <div><code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">> quote</code> → Quote</div>
         </div>
       </div>
     </div>

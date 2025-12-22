@@ -265,15 +265,19 @@ function insertHeading() {
 </script>
 
 <template>
-  <div class="markdown-editor rounded-2xl border border-gray-200 overflow-hidden bg-white">
+  <div
+    class="markdown-editor rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-900"
+  >
     <!-- 工具栏 -->
-    <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200">
+    <div
+      class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
+    >
       <!-- 格式化按钮 -->
       <div class="flex items-center gap-1">
         <!-- 标题 -->
         <button
           type="button"
-          class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
           title="标题"
           :disabled="mode === 'preview' || disabled"
           @click="insertHeading"
@@ -283,7 +287,7 @@ function insertHeading() {
         <!-- 粗体 -->
         <button
           type="button"
-          class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
           title="粗体"
           :disabled="mode === 'preview' || disabled"
           @click="insertBold"
@@ -293,18 +297,18 @@ function insertHeading() {
         <!-- 斜体 -->
         <button
           type="button"
-          class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
           title="斜体"
           :disabled="mode === 'preview' || disabled"
           @click="insertItalic"
         >
           <Italic :size="16" />
         </button>
-        <div class="w-px h-5 bg-gray-200 mx-1" />
+        <div class="w-px h-5 bg-gray-200 dark:bg-gray-600 mx-1" />
         <!-- 链接 -->
         <button
           type="button"
-          class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
           title="链接"
           :disabled="mode === 'preview' || disabled"
           @click="insertLink"
@@ -314,18 +318,18 @@ function insertHeading() {
         <!-- 图片 -->
         <button
           type="button"
-          class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
           title="图片"
           :disabled="mode === 'preview' || disabled"
           @click="insertImage"
         >
           <Image :size="16" />
         </button>
-        <div class="w-px h-5 bg-gray-200 mx-1" />
+        <div class="w-px h-5 bg-gray-200 dark:bg-gray-600 mx-1" />
         <!-- 列表 -->
         <button
           type="button"
-          class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
           title="列表"
           :disabled="mode === 'preview' || disabled"
           @click="insertList"
@@ -335,7 +339,7 @@ function insertHeading() {
         <!-- 代码 -->
         <button
           type="button"
-          class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
           title="代码"
           :disabled="mode === 'preview' || disabled"
           @click="insertCode"
@@ -345,7 +349,7 @@ function insertHeading() {
         <!-- 引用 -->
         <button
           type="button"
-          class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
           title="引用"
           :disabled="mode === 'preview' || disabled"
           @click="insertQuote"
@@ -355,14 +359,14 @@ function insertHeading() {
       </div>
 
       <!-- 模式切换 -->
-      <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+      <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
         <button
           type="button"
           class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer"
           :class="
             mode === 'write'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
           "
           @click="mode = 'write'"
         >
@@ -374,8 +378,8 @@ function insertHeading() {
           class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer"
           :class="
             mode === 'preview'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
           "
           @click="mode = 'preview'"
         >
@@ -395,24 +399,30 @@ function insertHeading() {
         :placeholder="placeholder || '写点什么吧... 支持 Markdown 语法！'"
         :rows="minRows || 8"
         :disabled="disabled"
-        class="w-full px-4 py-4 text-gray-800 placeholder-gray-400 border-none focus:outline-none focus:ring-0 resize-none font-mono text-sm leading-relaxed"
+        class="w-full px-4 py-4 text-gray-800 dark:text-gray-200 bg-transparent placeholder-gray-400 dark:placeholder-gray-500 border-none focus:outline-none focus:ring-0 resize-none font-mono text-sm leading-relaxed"
       />
 
       <!-- 预览模式 -->
       <!-- eslint-disable-next-line vue/no-v-html -->
       <div
         v-show="mode === 'preview'"
-        class="px-4 py-4 prose prose-gray max-w-none text-gray-800 leading-relaxed min-h-50"
+        class="px-4 py-4 prose prose-gray dark:prose-invert max-w-none text-gray-800 dark:text-gray-200 leading-relaxed min-h-50"
         v-html="renderedContent"
       />
     </div>
 
     <!-- 底部信息栏 -->
-    <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-t border-gray-200">
+    <div
+      class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700"
+    >
       <div class="flex items-center gap-2">
-        <span class="text-xs text-gray-400">支持 Markdown 语法</span>
+        <span class="text-xs text-gray-400 dark:text-gray-500">支持 Markdown 语法</span>
       </div>
-      <div v-if="maxLength" class="text-xs" :class="isOverLimit ? 'text-red-500' : 'text-gray-400'">
+      <div
+        v-if="maxLength"
+        class="text-xs"
+        :class="isOverLimit ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'"
+      >
         {{ characterCount }} / {{ maxLength }}
       </div>
     </div>

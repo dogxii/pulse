@@ -106,7 +106,7 @@ const displayUser = computed(() => {
   if (props.user) return props.user
   return {
     username: 'Guest',
-    avatar_url: 'https://api.dicebear.com/9.x/micah/svg?seed=Guest',
+    avatar_url: './guest.svg',
     bio: 'Sign in to share your pulse.',
     post_count: 0,
     is_admin: false,
@@ -133,11 +133,11 @@ const openGitHub = () => {
 
 <template>
   <div
-    class="bg-white rounded-3xl p-8 shadow-sm relative flex flex-col items-center text-center transition-all duration-300 hover:shadow-md"
+    class="bg-white dark:bg-gray-900 rounded-3xl p-8 shadow-sm relative flex flex-col items-center text-center transition-all duration-300 hover:shadow-md dark:shadow-gray-950/50"
   >
     <!-- Logo (右上角) - 点击切换主题 -->
     <div
-      class="absolute top-6 right-6 text-gray-300 hover:text-emerald-500 transition-colors cursor-pointer"
+      class="absolute top-6 right-6 text-gray-300 dark:text-gray-600 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors cursor-pointer"
       title="切换主题"
       @click="handleLogoClick"
     >
@@ -147,14 +147,14 @@ const openGitHub = () => {
     <!-- 骨架屏加载状态 -->
     <template v-if="isLoading">
       <!-- 头像骨架 -->
-      <div class="w-28 h-28 rounded-full mb-5 bg-gray-200 animate-pulse" />
+      <div class="w-28 h-28 rounded-full mb-5 bg-gray-200 dark:bg-gray-700 animate-pulse" />
       <!-- 用户名骨架 -->
-      <div class="h-6 w-24 bg-gray-200 rounded-lg mb-2 animate-pulse" />
+      <div class="h-6 w-24 bg-gray-200 dark:bg-gray-700 rounded-lg mb-2 animate-pulse" />
       <!-- Bio 骨架 -->
-      <div class="h-4 w-32 bg-gray-200 rounded-lg animate-pulse" />
+      <div class="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
       <!-- 按钮骨架 -->
       <div class="mt-6 w-full">
-        <div class="h-10 w-full bg-gray-200 rounded-xl animate-pulse" />
+        <div class="h-10 w-full bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
       </div>
     </template>
 
@@ -162,7 +162,7 @@ const openGitHub = () => {
     <template v-else>
       <!-- 头像 - 点击返回首页 -->
       <div
-        class="w-28 h-28 rounded-full overflow-hidden mb-5 bg-gray-50 p-1 cursor-pointer transition-transform hover:scale-105"
+        class="w-28 h-28 rounded-full overflow-hidden mb-5 bg-gray-50 dark:bg-gray-800 p-1 cursor-pointer transition-transform hover:scale-105"
         title="返回首页"
         @click="handleAvatarClick"
       >
@@ -174,12 +174,12 @@ const openGitHub = () => {
       </div>
 
       <!-- 用户名 -->
-      <h2 class="text-xl font-bold text-gray-800 mb-2 tracking-tight">
+      <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2 tracking-tight">
         {{ displayUser.username }}
       </h2>
 
       <!-- 个人简介 -->
-      <p class="text-gray-500 text-sm leading-relaxed px-2">
+      <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed px-2">
         {{ displayUser.bio }}
       </p>
 
@@ -187,18 +187,22 @@ const openGitHub = () => {
       <div v-if="!user" class="mt-6 w-full">
         <a
           href="/api/auth/github"
-          class="block w-full py-2 px-4 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
+          class="block w-full py-2 px-4 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
         >
           Login with GitHub
         </a>
       </div>
 
       <!-- 统计信息 (已登录时显示) -->
-      <div v-else class="mt-6 pt-6 border-t border-gray-50 w-full">
+      <div v-else class="mt-6 pt-6 border-t border-gray-50 dark:border-gray-800 w-full">
         <div class="flex justify-center gap-8 mb-4">
           <div class="flex flex-col items-center">
-            <span class="font-bold text-gray-900 text-lg">{{ displayUser.post_count || 0 }}</span>
-            <span class="text-gray-400 text-xs uppercase tracking-wider">Pulses</span>
+            <span class="font-bold text-gray-900 dark:text-gray-100 text-lg">{{
+              displayUser.post_count || 0
+            }}</span>
+            <span class="text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wider"
+              >Pulses</span
+            >
           </div>
         </div>
       </div>
@@ -209,25 +213,29 @@ const openGitHub = () => {
       <Transition name="toast">
         <div
           v-if="showFloatingToast"
-          class="fixed top-4 right-4 z-50 bg-white rounded-xl shadow-lg border border-gray-100 p-3 min-w-56 animate-toast-in"
+          class="fixed top-4 right-4 z-50 bg-white dark:bg-gray-900 rounded-xl shadow-lg dark:shadow-gray-950/50 border border-gray-100 dark:border-gray-800 p-3 min-w-56 animate-toast-in"
         >
           <div class="flex items-center gap-3">
             <!-- 主题图标 -->
             <div
-              class="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0"
+              class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0"
             >
-              <component :is="ThemeIcon" :size="18" class="text-gray-700" />
+              <component :is="ThemeIcon" :size="18" class="text-gray-700 dark:text-gray-300" />
             </div>
 
             <!-- 信息 -->
             <div class="flex-1 min-w-0">
-              <div class="text-xs text-gray-400 mb-0.5">当前版本: v{{ APP_VERSION }}</div>
-              <div class="text-sm font-medium text-gray-900">主题: {{ themeDisplayText }}</div>
+              <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">
+                当前版本: v{{ APP_VERSION }}
+              </div>
+              <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                主题: {{ themeDisplayText }}
+              </div>
             </div>
 
             <!-- GitHub 按钮 -->
             <button
-              class="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer flex-shrink-0"
+              class="p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer flex-shrink-0"
               title="访问 GitHub"
               @click.stop="openGitHub"
             >

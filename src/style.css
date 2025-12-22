@@ -1,1 +1,58 @@
 @import "tailwindcss";
+
+/* 启用 Tailwind dark mode (class 策略) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 自定义 CSS 变量用于主题 */
+:root {
+  /* Light 主题颜色 */
+  --color-bg-primary: #fafafa;
+  --color-bg-secondary: #ffffff;
+  --color-bg-tertiary: #f3f4f6;
+  --color-text-primary: #111827;
+  --color-text-secondary: #4b5563;
+  --color-text-tertiary: #9ca3af;
+  --color-border: #e5e7eb;
+  --color-border-hover: #d1d5db;
+}
+
+.dark {
+  /* Dark 主题颜色 */
+  --color-bg-primary: #0f0f0f;
+  --color-bg-secondary: #1a1a1a;
+  --color-bg-tertiary: #262626;
+  --color-text-primary: #f9fafb;
+  --color-text-secondary: #d1d5db;
+  --color-text-tertiary: #6b7280;
+  --color-border: #374151;
+  --color-border-hover: #4b5563;
+}
+
+/* 全局基础样式 */
+body {
+  @apply bg-gray-50/50 text-gray-900 dark:bg-[#0f0f0f] dark:text-gray-100;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 滚动条样式 (可选) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-500;
+}
+
+/* Selection 样式 */
+::selection {
+  @apply bg-emerald-100 text-emerald-900 dark:bg-emerald-900/50 dark:text-emerald-100;
+}

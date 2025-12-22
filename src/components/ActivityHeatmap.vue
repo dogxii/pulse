@@ -70,11 +70,11 @@ const grid = computed(() => {
  * @param count - 帖子数量
  */
 const getIntensityClass = (count: number): string => {
-  if (count === 0) return 'bg-gray-100'
-  if (count === 1) return 'bg-emerald-200'
-  if (count === 2) return 'bg-emerald-300'
-  if (count <= 4) return 'bg-emerald-400'
-  return 'bg-emerald-500'
+  if (count === 0) return 'bg-gray-100 dark:bg-gray-800'
+  if (count === 1) return 'bg-emerald-200 dark:bg-emerald-900'
+  if (count === 2) return 'bg-emerald-300 dark:bg-emerald-700'
+  if (count <= 4) return 'bg-emerald-400 dark:bg-emerald-600'
+  return 'bg-emerald-500 dark:bg-emerald-500'
 }
 
 /**
@@ -97,11 +97,15 @@ const totalPosts = computed(() => {
 </script>
 
 <template>
-  <div class="bg-white rounded-2xl p-4 shadow-sm mb-4">
+  <div class="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm dark:shadow-gray-950/50 mb-4">
     <!-- 标题 -->
     <div class="flex items-center justify-between mb-3">
-      <h3 class="text-gray-400 text-xs font-bold uppercase tracking-widest">活动</h3>
-      <span class="text-xs text-gray-400"> 近 30 天 {{ totalPosts }} 条动态 </span>
+      <h3 class="text-gray-400 dark:text-gray-500 text-xs font-bold uppercase tracking-widest">
+        活动
+      </h3>
+      <span class="text-xs text-gray-400 dark:text-gray-500">
+        近 30 天 {{ totalPosts }} 条动态
+      </span>
     </div>
 
     <!-- 热力图网格 (3 行 x 10 列) -->
@@ -113,7 +117,7 @@ const totalPosts = computed(() => {
           :class="[
             'w-full aspect-square rounded-sm transition-all duration-200 cursor-default',
             getIntensityClass(day.count),
-            'hover:ring-2 hover:ring-gray-300 hover:ring-offset-1',
+            'hover:ring-2 hover:ring-gray-300 dark:hover:ring-gray-600 hover:ring-offset-1 dark:hover:ring-offset-gray-900',
           ]"
           :title="`${formatDate(day.date)}: ${day.count} 条动态`"
         />
@@ -122,13 +126,13 @@ const totalPosts = computed(() => {
 
     <!-- 图例 -->
     <div class="flex items-center justify-end gap-1 mt-3">
-      <span class="text-xs text-gray-400 mr-1">少</span>
-      <div class="w-3 h-3 rounded-sm bg-gray-100" title="0 条" />
-      <div class="w-3 h-3 rounded-sm bg-emerald-200" title="1 条" />
-      <div class="w-3 h-3 rounded-sm bg-emerald-300" title="2 条" />
-      <div class="w-3 h-3 rounded-sm bg-emerald-400" title="3-4 条" />
-      <div class="w-3 h-3 rounded-sm bg-emerald-500" title="5+ 条" />
-      <span class="text-xs text-gray-400 ml-1">多</span>
+      <span class="text-xs text-gray-400 dark:text-gray-500 mr-1">少</span>
+      <div class="w-3 h-3 rounded-sm bg-gray-100 dark:bg-gray-800" title="0 条" />
+      <div class="w-3 h-3 rounded-sm bg-emerald-200 dark:bg-emerald-900" title="1 条" />
+      <div class="w-3 h-3 rounded-sm bg-emerald-300 dark:bg-emerald-700" title="2 条" />
+      <div class="w-3 h-3 rounded-sm bg-emerald-400 dark:bg-emerald-600" title="3-4 条" />
+      <div class="w-3 h-3 rounded-sm bg-emerald-500 dark:bg-emerald-500" title="5+ 条" />
+      <span class="text-xs text-gray-400 dark:text-gray-500 ml-1">多</span>
     </div>
   </div>
 </template>

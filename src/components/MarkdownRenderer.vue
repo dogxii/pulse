@@ -30,21 +30,21 @@ const renderedContent = computed(() => {
   // 先处理代码块（防止内部内容被其他规则处理）
   html = html.replace(
     /```(\w*)\n([\s\S]*?)```/g,
-    '<pre class="bg-gray-100 rounded-lg p-3 my-2 overflow-x-auto"><code class="text-sm font-mono text-gray-800">$2</code></pre>'
+    '<pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 my-2 overflow-x-auto"><code class="text-sm font-mono text-gray-800 dark:text-gray-200">$2</code></pre>'
   )
 
   // 处理标题（移除标题后的换行，避免产生多余的 br）
   html = html.replace(
     /^### (.+)$/gm,
-    '<h3 class="md-heading text-base font-bold text-gray-900">$1</h3>'
+    '<h3 class="md-heading text-base font-bold text-gray-900 dark:text-gray-100">$1</h3>'
   )
   html = html.replace(
     /^## (.+)$/gm,
-    '<h2 class="md-heading text-lg font-bold text-gray-900">$1</h2>'
+    '<h2 class="md-heading text-lg font-bold text-gray-900 dark:text-gray-100">$1</h2>'
   )
   html = html.replace(
     /^# (.+)$/gm,
-    '<h1 class="md-heading text-xl font-bold text-gray-900">$1</h1>'
+    '<h1 class="md-heading text-xl font-bold text-gray-900 dark:text-gray-100">$1</h1>'
   )
 
   // 粗体
@@ -58,13 +58,13 @@ const renderedContent = computed(() => {
   // 行内代码
   html = html.replace(
     /`([^`]+)`/g,
-    '<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-gray-800">$1</code>'
+    '<code class="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono text-gray-800 dark:text-gray-200">$1</code>'
   )
 
   // 引用块
   html = html.replace(
     /^> (.+)$/gm,
-    '<blockquote class="border-l-4 border-gray-300 pl-3 my-2 text-gray-600 italic">$1</blockquote>'
+    '<blockquote class="border-l-4 border-gray-300 dark:border-gray-600 pl-3 my-2 text-gray-600 dark:text-gray-400 italic">$1</blockquote>'
   )
 
   // 无序列表
@@ -74,20 +74,20 @@ const renderedContent = computed(() => {
   // 有序列表
   html = html.replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal">$1</li>')
 
-  // 链接（新标签页打开）
-  html = html.replace(
-    /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-emerald-600 hover:text-emerald-700 underline">$1</a>'
-  )
-
-  // 图片（行内图片，非帖子图片数组）
+  // 图片（行内图片，非帖子图片数组）- 必须在链接之前处理
   html = html.replace(
     /!\[([^\]]*)\]\(([^)]+)\)/g,
     '<img src="$2" alt="$1" class="rounded-xl max-w-full my-2 inline-block" loading="lazy" />'
   )
 
+  // 链接（新标签页打开）
+  html = html.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline">$1</a>'
+  )
+
   // 分割线
-  html = html.replace(/^---$/gm, '<hr class="my-4 border-gray-200" />')
+  html = html.replace(/^---$/gm, '<hr class="my-4 border-gray-200 dark:border-gray-700" />')
 
   // 处理换行
   // 移除标题前后的空行产生的多余换行

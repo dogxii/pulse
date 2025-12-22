@@ -104,14 +104,14 @@ const navigateToProfile = () => {
 
 <template>
   <div
-    class="bg-white rounded-3xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6"
+    class="bg-white dark:bg-gray-900 rounded-3xl p-6 md:p-8 shadow-sm dark:shadow-gray-950/50 hover:shadow-md dark:hover:shadow-gray-950/70 transition-shadow duration-300 mb-6"
   >
     <!-- 头部：用户信息和时间 -->
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
         <!-- 头像 -->
         <div
-          class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 cursor-pointer"
+          class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 cursor-pointer"
           @click="navigateToProfile"
         >
           <img
@@ -125,26 +125,26 @@ const navigateToProfile = () => {
         <!-- 用户名和时间 -->
         <div class="flex flex-col">
           <span
-            class="font-bold text-gray-900 text-sm cursor-pointer hover:underline"
+            class="font-bold text-gray-900 dark:text-gray-100 text-sm cursor-pointer hover:underline"
             @click="navigateToProfile"
           >
             {{ post.user?.username || '未知用户' }}
           </span>
-          <span class="text-xs text-gray-400">{{ formattedDate }}</span>
+          <span class="text-xs text-gray-400 dark:text-gray-500">{{ formattedDate }}</span>
         </div>
       </div>
 
       <!-- 作者操作按钮 -->
       <div v-if="isAuthor" class="flex items-center gap-2">
         <button
-          class="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+          class="p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
           title="编辑"
           @click="handleEditClick"
         >
           <Edit3 :size="16" />
         </button>
         <button
-          class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+          class="p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
           title="删除"
           @click="handleDeleteClick"
         >
@@ -155,7 +155,10 @@ const navigateToProfile = () => {
 
     <!-- 内容区（支持 Markdown 渲染） -->
     <div class="mb-6">
-      <MarkdownRenderer :content="post.content" class="text-gray-800 text-lg font-medium" />
+      <MarkdownRenderer
+        :content="post.content"
+        class="text-gray-800 dark:text-gray-200 text-lg font-medium"
+      />
 
       <!-- 图片（如果有） -->
       <div
@@ -168,17 +171,21 @@ const navigateToProfile = () => {
           :key="index"
           :src="img"
           alt="帖子图片"
-          class="rounded-2xl w-full h-auto object-cover max-h-96 bg-gray-50"
+          class="rounded-2xl w-full h-auto object-cover max-h-96 bg-gray-50 dark:bg-gray-800"
         />
       </div>
     </div>
 
     <!-- 底部：操作按钮 -->
-    <div class="flex items-center gap-6 text-gray-400">
+    <div class="flex items-center gap-6 text-gray-400 dark:text-gray-500">
       <!-- 点赞 -->
       <button
         class="flex items-center gap-2 group transition-colors focus:outline-none bg-transparent p-0 border-none shadow-none cursor-pointer"
-        :class="isLiked ? 'text-rose-500' : 'hover:text-rose-500'"
+        :class="
+          isLiked
+            ? 'text-rose-500 dark:text-rose-400'
+            : 'hover:text-rose-500 dark:hover:text-rose-400'
+        "
         @click="handleLikeClick"
       >
         <Heart
@@ -191,7 +198,7 @@ const navigateToProfile = () => {
 
       <!-- 评论 -->
       <button
-        class="flex items-center gap-2 group transition-colors hover:text-blue-500 focus:outline-none bg-transparent p-0 border-none shadow-none cursor-pointer"
+        class="flex items-center gap-2 group transition-colors hover:text-blue-500 dark:hover:text-blue-400 focus:outline-none bg-transparent p-0 border-none shadow-none cursor-pointer"
         @click="handleCommentClick"
       >
         <MessageCircle :size="20" class="group-hover:scale-110 transition-transform" />

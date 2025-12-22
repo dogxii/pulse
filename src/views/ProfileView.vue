@@ -269,18 +269,18 @@ onMounted(async () => {
   >
     <!-- 加载状态 -->
     <div v-if="isLoadingUser" class="py-20 text-center">
-      <Loader2 class="w-8 h-8 animate-spin text-gray-400 mx-auto mb-4" />
-      <p class="text-gray-500">正在加载...</p>
+      <Loader2 class="w-8 h-8 animate-spin text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+      <p class="text-gray-500 dark:text-gray-400">正在加载...</p>
     </div>
 
     <!-- 错误状态 -->
-    <div v-else-if="error" class="py-20 text-center bg-white rounded-3xl">
+    <div v-else-if="error" class="py-20 text-center bg-white dark:bg-gray-900 rounded-3xl">
       <AlertCircle class="w-12 h-12 text-red-400 mx-auto mb-4" />
-      <h2 class="text-lg font-semibold text-gray-900 mb-2">用户不存在</h2>
-      <p class="text-gray-500 text-sm mb-6">{{ error }}</p>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">用户不存在</h2>
+      <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">{{ error }}</p>
       <router-link
         to="/"
-        class="px-5 py-2.5 bg-gray-900 text-white rounded-xl font-medium text-sm hover:bg-gray-800 transition-colors"
+        class="px-5 py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-medium text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
       >
         返回首页
       </router-link>
@@ -289,11 +289,13 @@ onMounted(async () => {
     <!-- 用户主页内容 -->
     <div v-else-if="user">
       <!-- 用户资料卡片 -->
-      <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm mb-8">
+      <div
+        class="bg-white dark:bg-gray-900 rounded-3xl p-6 md:p-8 shadow-sm dark:shadow-gray-950/50 mb-8"
+      >
         <div class="flex flex-col md:flex-row md:items-start gap-6">
           <!-- 头像 -->
           <div
-            class="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-gray-100 flex-shrink-0 mx-auto md:mx-0"
+            class="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 mx-auto md:mx-0"
           >
             <img
               :src="user.avatar_url || `https://api.dicebear.com/9.x/micah/svg?seed=${user.id}`"
@@ -305,11 +307,13 @@ onMounted(async () => {
           <!-- 用户信息 -->
           <div class="flex-1 text-center md:text-left">
             <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mb-3">
-              <h1 class="text-2xl font-bold text-gray-900">@{{ user.username }}</h1>
+              <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                @{{ user.username }}
+              </h1>
               <div class="flex items-center justify-center md:justify-start gap-2">
                 <span
                   v-if="user.is_admin"
-                  class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full"
+                  class="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 text-xs font-medium rounded-full"
                 >
                   管理员
                 </span>
@@ -325,20 +329,22 @@ onMounted(async () => {
                   placeholder="写点什么介绍一下自己..."
                   rows="3"
                   maxlength="500"
-                  class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
+                  class="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 resize-none"
                 />
                 <div class="flex items-center justify-between mt-2">
-                  <span class="text-xs text-gray-400">{{ editBio.length }}/500</span>
+                  <span class="text-xs text-gray-400 dark:text-gray-500"
+                    >{{ editBio.length }}/500</span
+                  >
                   <div class="flex gap-2">
                     <button
-                      class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                      class="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer"
                       :disabled="isSaving"
                       @click="cancelEditing"
                     >
                       <X :size="18" />
                     </button>
                     <button
-                      class="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                      class="p-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors cursor-pointer"
                       :disabled="isSaving"
                       @click="saveBio"
                     >
@@ -350,12 +356,15 @@ onMounted(async () => {
               </div>
               <!-- 显示模式 -->
               <div v-else class="flex items-start gap-2 justify-center md:justify-start">
-                <p class="text-gray-600" :class="{ 'text-gray-400 italic': !user.bio }">
+                <p
+                  class="text-gray-600 dark:text-gray-300"
+                  :class="{ 'text-gray-400 dark:text-gray-500 italic': !user.bio }"
+                >
                   {{ user.bio || '暂无简介' }}
                 </p>
                 <button
                   v-if="isOwnProfile"
-                  class="p-1 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                  class="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
                   title="编辑简介"
                   @click="startEditing"
                 >
@@ -367,38 +376,48 @@ onMounted(async () => {
             <!-- 统计信息 -->
             <div class="flex items-center justify-center md:justify-start gap-6 text-sm">
               <div>
-                <span class="font-bold text-gray-900">{{ user.post_count }}</span>
-                <span class="text-gray-500 ml-1">动态</span>
+                <span class="font-bold text-gray-900 dark:text-gray-100">{{
+                  user.post_count
+                }}</span>
+                <span class="text-gray-500 dark:text-gray-400 ml-1">动态</span>
               </div>
-              <div class="flex items-center gap-1 text-gray-500">
+              <div class="flex items-center gap-1 text-gray-500 dark:text-gray-400">
                 <Calendar :size="14" />
                 <span>{{ joinedDate }} 加入</span>
               </div>
             </div>
 
             <!-- 最近活跃 -->
-            <p class="mt-2 text-xs text-gray-400">{{ lastActiveText }}</p>
+            <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">{{ lastActiveText }}</p>
           </div>
         </div>
       </div>
 
       <!-- 帖子区域 -->
       <div class="mb-6">
-        <h2 class="text-lg font-bold text-gray-900 mb-4">动态</h2>
+        <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">动态</h2>
       </div>
 
       <!-- 帖子加载中 -->
       <div v-if="isLoadingPosts" class="py-12 text-center">
-        <Loader2 class="w-6 h-6 animate-spin text-gray-400 mx-auto mb-2" />
-        <p class="text-gray-400 text-sm">加载动态中...</p>
+        <Loader2 class="w-6 h-6 animate-spin text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+        <p class="text-gray-400 dark:text-gray-500 text-sm">加载动态中...</p>
       </div>
 
       <!-- 无帖子 -->
-      <div v-else-if="userPosts.length === 0" class="py-12 text-center bg-white rounded-3xl">
+      <div
+        v-else-if="userPosts.length === 0"
+        class="py-12 text-center bg-white dark:bg-gray-900 rounded-3xl"
+      >
         <div
-          class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
+          class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4"
         >
-          <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            class="w-8 h-8 text-gray-400 dark:text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -407,13 +426,13 @@ onMounted(async () => {
             />
           </svg>
         </div>
-        <p class="text-gray-500">
+        <p class="text-gray-500 dark:text-gray-400">
           {{ isOwnProfile ? '你还没有发布任何动态' : '暂无动态' }}
         </p>
         <router-link
           v-if="isOwnProfile"
           to="/new"
-          class="inline-block mt-4 px-5 py-2.5 bg-gray-900 text-white rounded-xl font-medium text-sm hover:bg-gray-800 transition-colors"
+          class="inline-block mt-4 px-5 py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-medium text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
         >
           发布第一条动态
         </router-link>

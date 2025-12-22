@@ -252,24 +252,24 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50/50">
+  <div class="min-h-screen bg-gray-50/50 dark:bg-[#0f0f0f] transition-colors duration-300">
     <div class="max-w-2xl mx-auto px-4 py-8">
       <!-- 头部 -->
       <div class="flex items-center justify-between mb-8">
         <div class="flex items-center gap-4">
           <button
-            class="p-2 rounded-xl hover:bg-white transition-colors cursor-pointer"
+            class="p-2 rounded-xl hover:bg-white dark:hover:bg-gray-800 transition-colors cursor-pointer"
             @click="goBack"
           >
-            <ArrowLeft :size="20" class="text-gray-600" />
+            <ArrowLeft :size="20" class="text-gray-600 dark:text-gray-400" />
           </button>
-          <h1 class="text-xl font-bold text-gray-900">动态详情</h1>
+          <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">动态详情</h1>
         </div>
 
         <!-- 编辑按钮（仅作者可见） -->
         <button
           v-if="isAuthor && post"
-          class="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-white rounded-xl transition-colors cursor-pointer"
+          class="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-white dark:hover:bg-gray-800 rounded-xl transition-colors cursor-pointer"
           @click="handleEdit"
         >
           <Edit3 :size="18" />
@@ -279,17 +279,17 @@ onMounted(async () => {
 
       <!-- 加载状态 -->
       <div v-if="isLoading" class="py-20 text-center">
-        <Loader2 class="w-8 h-8 animate-spin text-gray-400 mx-auto mb-4" />
-        <p class="text-gray-500">正在加载...</p>
+        <Loader2 class="w-8 h-8 animate-spin text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+        <p class="text-gray-500 dark:text-gray-400">正在加载...</p>
       </div>
 
       <!-- 错误状态 -->
-      <div v-else-if="error" class="py-20 text-center bg-white rounded-3xl">
+      <div v-else-if="error" class="py-20 text-center bg-white dark:bg-gray-900 rounded-3xl">
         <AlertCircle class="w-12 h-12 text-red-400 mx-auto mb-4" />
-        <h2 class="text-lg font-semibold text-gray-900 mb-2">加载失败</h2>
-        <p class="text-gray-500 text-sm mb-6">{{ error }}</p>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">加载失败</h2>
+        <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">{{ error }}</p>
         <button
-          class="px-5 py-2.5 bg-gray-900 text-white rounded-xl font-medium text-sm hover:bg-gray-800 transition-colors cursor-pointer"
+          class="px-5 py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-medium text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors cursor-pointer"
           @click="fetchPost"
         >
           重试
@@ -299,11 +299,13 @@ onMounted(async () => {
       <!-- 帖子内容 -->
       <div v-else-if="post" class="space-y-6">
         <!-- 主要帖子卡片 -->
-        <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm">
+        <div
+          class="bg-white dark:bg-gray-900 rounded-3xl p-6 md:p-8 shadow-sm dark:shadow-gray-950/50"
+        >
           <!-- 用户信息 -->
           <div class="flex items-center gap-3 mb-6">
             <div
-              class="w-12 h-12 rounded-full overflow-hidden bg-gray-100 cursor-pointer"
+              class="w-12 h-12 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 cursor-pointer"
               @click="navigateToProfile(post.user)"
             >
               <img
@@ -317,18 +319,21 @@ onMounted(async () => {
             </div>
             <div class="flex flex-col">
               <span
-                class="font-bold text-gray-900 cursor-pointer hover:underline"
+                class="font-bold text-gray-900 dark:text-gray-100 cursor-pointer hover:underline"
                 @click="navigateToProfile(post.user)"
               >
                 {{ post.user?.username || '未知用户' }}
               </span>
-              <span class="text-sm text-gray-400">{{ formattedDate }}</span>
+              <span class="text-sm text-gray-400 dark:text-gray-500">{{ formattedDate }}</span>
             </div>
           </div>
 
           <!-- 内容区（Markdown 渲染） -->
           <div class="mb-6">
-            <MarkdownRenderer :content="post.content" class="text-gray-800 text-xl" />
+            <MarkdownRenderer
+              :content="post.content"
+              class="text-gray-800 dark:text-gray-200 text-xl"
+            />
 
             <!-- 图片 -->
             <div
@@ -341,17 +346,21 @@ onMounted(async () => {
                 :key="index"
                 :src="img"
                 alt="帖子图片"
-                class="rounded-2xl w-full h-auto object-cover max-h-[500px] bg-gray-50"
+                class="rounded-2xl w-full h-auto object-cover max-h-[500px] bg-gray-50 dark:bg-gray-800"
               />
             </div>
           </div>
 
           <!-- 操作按钮（合并统计信息和操作） -->
-          <div class="flex items-center gap-6 pt-4 border-t border-gray-100">
+          <div class="flex items-center gap-6 pt-4 border-t border-gray-100 dark:border-gray-800">
             <!-- 点赞 -->
             <button
               class="flex items-center gap-2 group transition-colors focus:outline-none cursor-pointer"
-              :class="isLiked ? 'text-rose-500' : 'text-gray-400 hover:text-rose-500'"
+              :class="
+                isLiked
+                  ? 'text-rose-500 dark:text-rose-400'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-rose-500 dark:hover:text-rose-400'
+              "
               @click="handleLikeToggle"
             >
               <Heart
@@ -364,7 +373,7 @@ onMounted(async () => {
 
             <!-- 评论 -->
             <button
-              class="flex items-center gap-2 text-gray-400 hover:text-blue-500 transition-colors cursor-pointer"
+              class="flex items-center gap-2 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer"
               @click="scrollToComments"
             >
               <MessageCircle :size="22" />
@@ -374,10 +383,13 @@ onMounted(async () => {
         </div>
 
         <!-- 评论区 -->
-        <div id="comments-section" class="bg-white rounded-3xl p-6 shadow-sm">
-          <h2 class="font-bold text-gray-900 mb-6">
+        <div
+          id="comments-section"
+          class="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm dark:shadow-gray-950/50"
+        >
+          <h2 class="font-bold text-gray-900 dark:text-gray-100 mb-6">
             评论
-            <span v-if="commentsCount > 0" class="text-gray-400 font-normal">
+            <span v-if="commentsCount > 0" class="text-gray-400 dark:text-gray-500 font-normal">
               ({{ commentsCount }})
             </span>
           </h2>
@@ -387,13 +399,15 @@ onMounted(async () => {
             <!-- 评论错误提示 -->
             <div
               v-if="commentError"
-              class="mb-3 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm"
+              class="mb-3 p-3 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 rounded-xl text-red-600 dark:text-red-400 text-sm"
             >
               {{ commentError }}
             </div>
 
             <div class="flex items-start gap-3">
-              <div class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+              <div
+                class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0"
+              >
                 <img
                   :src="
                     authStore.currentUser?.avatar_url ||
@@ -408,12 +422,12 @@ onMounted(async () => {
                   v-model="newComment"
                   type="text"
                   placeholder="写下你的评论..."
-                  class="flex-1 px-4 py-2.5 bg-gray-50 rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-200 text-sm"
+                  class="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-gray-800 dark:text-gray-100 rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   :disabled="isSubmittingComment"
                   @keyup.enter="handleCommentSubmit"
                 />
                 <button
-                  class="p-2.5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  class="p-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   :disabled="!newComment.trim() || isSubmittingComment"
                   @click="handleCommentSubmit"
                 >
@@ -425,11 +439,11 @@ onMounted(async () => {
           </div>
 
           <!-- 登录提示（未登录） -->
-          <div v-else class="mb-6 p-4 bg-gray-50 rounded-xl text-center">
-            <p class="text-gray-500 text-sm mb-3">登录后即可发表评论</p>
+          <div v-else class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl text-center">
+            <p class="text-gray-500 dark:text-gray-400 text-sm mb-3">登录后即可发表评论</p>
             <router-link
               to="/login"
-              class="inline-block px-4 py-2 bg-gray-900 text-white rounded-lg font-medium text-sm hover:bg-gray-800 transition-colors"
+              class="inline-block px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg font-medium text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
             >
               登录
             </router-link>
@@ -437,8 +451,8 @@ onMounted(async () => {
 
           <!-- 评论加载状态 -->
           <div v-if="isLoadingComments" class="py-8 text-center">
-            <Loader2 class="w-6 h-6 animate-spin text-gray-400 mx-auto mb-2" />
-            <p class="text-gray-400 text-sm">加载评论中...</p>
+            <Loader2 class="w-6 h-6 animate-spin text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+            <p class="text-gray-400 dark:text-gray-500 text-sm">加载评论中...</p>
           </div>
 
           <!-- 评论列表 -->
@@ -446,11 +460,11 @@ onMounted(async () => {
             <div
               v-for="comment in comments"
               :key="comment.id"
-              class="flex gap-3 p-4 bg-gray-50 rounded-xl group"
+              class="flex gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl group"
             >
               <!-- 评论者头像 -->
               <div
-                class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 cursor-pointer"
+                class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0 cursor-pointer"
                 @click="navigateToProfile(comment.user)"
               >
                 <img
@@ -468,12 +482,12 @@ onMounted(async () => {
                 <div class="flex items-center justify-between gap-2 mb-1">
                   <div class="flex items-center gap-2">
                     <span
-                      class="font-semibold text-gray-900 text-sm cursor-pointer hover:underline"
+                      class="font-semibold text-gray-900 dark:text-gray-100 text-sm cursor-pointer hover:underline"
                       @click="navigateToProfile(comment.user)"
                     >
                       {{ comment.user?.username || '未知用户' }}
                     </span>
-                    <span class="text-xs text-gray-400">
+                    <span class="text-xs text-gray-400 dark:text-gray-500">
                       {{ formatCommentDate(comment.created_at) }}
                     </span>
                   </div>
@@ -481,21 +495,23 @@ onMounted(async () => {
                   <!-- 删除按钮（评论作者或帖子作者可见） -->
                   <button
                     v-if="canDeleteComment(comment)"
-                    class="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    class="text-xs text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                     @click="handleDeleteComment(comment.id)"
                   >
                     删除
                   </button>
                 </div>
-                <p class="text-gray-700 text-sm break-words">{{ comment.content }}</p>
+                <p class="text-gray-700 dark:text-gray-300 text-sm break-words">
+                  {{ comment.content }}
+                </p>
               </div>
             </div>
           </div>
 
           <!-- 暂无评论 -->
           <div v-else class="py-8 text-center">
-            <MessageCircle class="w-10 h-10 text-gray-300 mx-auto mb-3" />
-            <p class="text-gray-400 text-sm">暂无评论，快来抢沙发吧！</p>
+            <MessageCircle class="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+            <p class="text-gray-400 dark:text-gray-500 text-sm">暂无评论，快来抢沙发吧！</p>
           </div>
         </div>
       </div>
