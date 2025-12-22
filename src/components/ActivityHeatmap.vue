@@ -2,7 +2,7 @@
 // 活动热力图组件
 // 显示最近 30 天的发帖活动热力图，类似 GitHub 贡献图
 
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { Post } from '../types'
 
 // ========== Props ==========
@@ -78,22 +78,49 @@ const getIntensityClass = (count: number): string => {
 }
 
 /**
- * 格式化日期用于显示提示
- * @param date - 日期对象
- */
-const formatDate = (date: Date): string => {
-  return date.toLocaleDateString('zh-CN', {
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
-/**
  * 最近 30 天的总帖子数
  */
 const totalPosts = computed(() => {
   return heatmapData.value.reduce((sum, day) => sum + day.count, 0)
 })
+
+// ========== 悬浮提示状态 ==========
+const hoveredDay = ref<{ date: Date; count: number; dateStr: string } | null>(null)
+const tooltipPosition = ref({ x: 0, y: 0 })
+
+function handleMouseEnter(event: MouseEvent, day: { date: Date; count: number; dateStr: string }) {
+  hoveredDay.value = day
+  updateTooltipPosition(event)
+}
+
+function handleMouseMove(event: MouseEvent) {
+  if (hoveredDay.value) {
+    updateTooltipPosition(event)
+  }
+}
+
+function handleMouseLeave() {
+  hoveredDay.value = null
+}
+
+function updateTooltipPosition(event: MouseEvent) {
+  tooltipPosition.value = {
+    x: event.clientX,
+    y: event.clientY - 10,
+  }
+}
+
+/**
+ * 格式化完整日期用于 tooltip 显示
+ */
+const formatFullDate = (date: Date): string => {
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+  })
+}
 </script>
 
 <template>
@@ -119,10 +146,34 @@ const totalPosts = computed(() => {
             getIntensityClass(day.count),
             'hover:ring-2 hover:ring-gray-300 dark:hover:ring-gray-600 hover:ring-offset-1 dark:hover:ring-offset-gray-900',
           ]"
-          :title="`${formatDate(day.date)}: ${day.count} 条动态`"
+          @mouseenter="handleMouseEnter($event, day)"
+          @mousemove="handleMouseMove"
+          @mouseleave="handleMouseLeave"
         />
       </div>
     </div>
+
+    <!-- 悬浮提示框 -->
+    <Teleport to="body">
+      <Transition name="tooltip">
+        <div
+          v-if="hoveredDay"
+          class="fixed z-50 px-3 py-2 text-xs bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg shadow-lg pointer-events-none whitespace-nowrap"
+          :style="{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+            transform: 'translate(-50%, -100%)',
+          }"
+        >
+          <div class="font-medium">{{ formatFullDate(hoveredDay.date) }}</div>
+          <div class="text-gray-300 dark:text-gray-600 mt-0.5">{{ hoveredDay.count }} 条动态</div>
+          <!-- 小三角 -->
+          <div
+            class="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-100"
+          />
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- 图例 -->
     <div class="flex items-center justify-end gap-1 mt-3">
@@ -136,3 +187,16 @@ const totalPosts = computed(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Tooltip 动画 */
+.tooltip-enter-active,
+.tooltip-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.tooltip-enter-from,
+.tooltip-leave-to {
+  opacity: 0;
+}
+</style>

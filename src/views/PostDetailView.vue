@@ -346,7 +346,7 @@ onMounted(async () => {
                 :key="index"
                 :src="img"
                 alt="帖子图片"
-                class="rounded-2xl w-full h-auto object-cover max-h-[500px] bg-gray-50 dark:bg-gray-800"
+                class="rounded-2xl w-auto h-auto object-cover max-h-[500px] bg-gray-50 dark:bg-gray-800"
               />
             </div>
           </div>

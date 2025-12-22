@@ -25,7 +25,9 @@ const MAX_IMAGES = 4
 const characterCount = computed(() => content.value.length)
 const isOverLimit = computed(() => characterCount.value > MAX_CONTENT_LENGTH)
 const canSubmit = computed(() => {
-  return content.value.trim().length > 0 && !isOverLimit.value && !isSubmitting.value
+  const hasContent = content.value.trim().length > 0
+  const hasImages = images.value.length > 0
+  return (hasContent || hasImages) && !isOverLimit.value && !isSubmitting.value
 })
 const canUploadMore = computed(() => images.value.length < MAX_IMAGES)
 

@@ -8,6 +8,7 @@ import type { User } from '../types'
 const props = defineProps<{
   user?: User | null
   isLoading?: boolean
+  todayPostCount?: number
 }>()
 
 const router = useRouter()
@@ -202,6 +203,14 @@ const openGitHub = () => {
             }}</span>
             <span class="text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wider"
               >Pulses</span
+            >
+          </div>
+          <div class="flex flex-col items-center">
+            <span class="font-bold text-gray-900 dark:text-gray-100 text-lg">{{
+              props.todayPostCount || 0
+            }}</span>
+            <span class="text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wider"
+              >Today</span
             >
           </div>
         </div>

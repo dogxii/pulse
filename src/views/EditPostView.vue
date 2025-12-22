@@ -33,7 +33,9 @@ const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'ima
 const postId = computed(() => route.params.id as string)
 const isOverLimit = computed(() => content.value.length > MAX_CONTENT_LENGTH)
 const canSubmit = computed(() => {
-  return content.value.trim().length > 0 && !isOverLimit.value && !isSubmitting.value
+  const hasContent = content.value.trim().length > 0
+  const hasImages = images.value.length > 0
+  return (hasContent || hasImages) && !isOverLimit.value && !isSubmitting.value
 })
 const canUploadMore = computed(() => images.value.length < MAX_IMAGES)
 const hasChanges = computed(() => {

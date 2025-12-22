@@ -147,6 +147,22 @@ function goToLogin() {
 function handleThemeChange() {
   cycleTheme()
 }
+
+// ========== 计算今日动态数量 ==========
+const todayPostCount = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  return props.posts.filter(post => {
+    try {
+      const postDate = new Date(post.created_at)
+      postDate.setHours(0, 0, 0, 0)
+      return postDate.getTime() === today.getTime()
+    } catch {
+      return false
+    }
+  }).length
+})
 </script>
 
 <template>
@@ -158,7 +174,11 @@ function handleThemeChange() {
         <!-- 左侧边栏（用户资料卡片） -->
         <aside class="hidden lg:block lg:col-span-3">
           <div class="sticky top-8 space-y-6">
-            <UserCard :user="currentUser" :is-loading="isLoading" />
+            <UserCard
+              :user="currentUser"
+              :is-loading="isLoading"
+              :today-post-count="todayPostCount"
+            />
 
             <div
               class="text-xs text-gray-400 dark:text-gray-500 text-center px-4 leading-relaxed opacity-60"
