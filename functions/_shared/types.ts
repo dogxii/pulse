@@ -1,0 +1,96 @@
+// Cloudflare Pages Functions 环境类型定义
+
+export interface Env {
+	// R2 存储桶绑定
+	R2_BUCKET: R2Bucket;
+
+	// 环境变量 / 密钥
+	GITHUB_CLIENT_ID: string;
+	GITHUB_CLIENT_SECRET: string;
+	JWT_SECRET: string;
+
+	// 可选：前端 URL，用于重定向
+	FRONTEND_URL?: string;
+}
+
+// 从前端复用的共享类型
+export interface User {
+	id: string; // GitHub ID
+	username: string; // GitHub 用户名
+	avatar_url: string;
+	bio: string;
+	joined_at: string; // ISO 日期格式
+	last_post_at: string;
+	post_count: number;
+	is_admin: boolean;
+}
+
+export interface Post {
+	id: string; // UUID
+	user_id: string;
+	content: string;
+	images?: string[];
+	created_at: string; // ISO 日期格式
+	likes: string[];
+	comments_count: number;
+	user?: User;
+}
+
+export interface Comment {
+	id: string;
+	post_id: string;
+	user_id: string;
+	content: string;
+	created_at: string;
+	user?: User;
+}
+
+// R2 存储结构
+export interface UsersIndex {
+	users: User[];
+	updated_at: string;
+}
+
+export interface PostsIndex {
+	// 帖子 ID 数组，按 created_at 降序排列
+	post_ids: string[];
+	total_count: number;
+	updated_at: string;
+}
+
+// JWT 载荷
+export interface JWTPayload {
+	sub: string; // 用户 ID
+	username: string;
+	iat: number;
+	exp: number;
+}
+
+// GitHub OAuth 类型
+export interface GitHubUser {
+	id: number;
+	login: string;
+	avatar_url: string;
+	bio: string | null;
+}
+
+export interface GitHubTokenResponse {
+	access_token: string;
+	token_type: string;
+	scope: string;
+}
+
+// API 响应类型
+export interface APIResponse<T = unknown> {
+	success: boolean;
+	data?: T;
+	error?: string;
+}
+
+export interface PaginatedResponse<T> {
+	items: T[];
+	total: number;
+	page: number;
+	limit: number;
+	has_more: boolean;
+}
