@@ -1,22 +1,107 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Activity, X, Github, ExternalLink, Shield } from 'lucide-vue-next'
+import { Activity, Github, Sun, Moon, Monitor } from 'lucide-vue-next'
 import type { User } from '../types'
 
+// ========== Props ==========
 const props = defineProps<{
   user?: User | null
+  isLoading?: boolean
 }>()
 
 const router = useRouter()
 
-// App info
+// ========== 常量 ==========
 const APP_VERSION = '1.0.0'
-const GITHUB_URL = 'https://github.com/nicepkg/pulse'
+const GITHUB_URL = 'https://github.com/dogxii/pulse'
 
-// Modal state
-const showAboutModal = ref(false)
+// ========== 主题状态 ==========
+type ThemeMode = 'auto' | 'light' | 'dark'
+const themeMode = ref<ThemeMode>('auto')
 
+// 从 localStorage 恢复主题设置
+onMounted(() => {
+  const savedTheme = localStorage.getItem('pulse_theme') as ThemeMode | null
+  if (savedTheme && ['auto', 'light', 'dark'].includes(savedTheme)) {
+    themeMode.value = savedTheme
+  }
+  applyTheme(themeMode.value)
+})
+
+// 应用主题
+function applyTheme(mode: ThemeMode) {
+  const root = document.documentElement
+  if (mode === 'dark') {
+    root.classList.add('dark')
+  } else if (mode === 'light') {
+    root.classList.remove('dark')
+  } else {
+    // auto: 根据系统偏好
+    if (globalThis.window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+  }
+}
+
+// 监听主题变化
+watch(themeMode, newMode => {
+  localStorage.setItem('pulse_theme', newMode)
+  applyTheme(newMode)
+})
+
+// 切换主题
+function cycleTheme() {
+  const modes: ThemeMode[] = ['auto', 'light', 'dark']
+  const currentIndex = modes.indexOf(themeMode.value)
+  themeMode.value = modes[(currentIndex + 1) % modes.length] || 'auto'
+  showToast()
+}
+
+// ========== 浮动提示状态 ==========
+const showFloatingToast = ref(false)
+let toastTimer: ReturnType<typeof setTimeout> | null = null
+
+// 显示浮动提示
+function showToast() {
+  // 清除之前的定时器
+  if (toastTimer) {
+    clearTimeout(toastTimer)
+  }
+  showFloatingToast.value = true
+  // 3秒后自动隐藏
+  toastTimer = setTimeout(() => {
+    showFloatingToast.value = false
+  }, 3000)
+}
+
+// 获取主题显示文本
+const themeDisplayText = computed(() => {
+  switch (themeMode.value) {
+    case 'light':
+      return 'Light'
+    case 'dark':
+      return 'Dark'
+    default:
+      return 'Auto'
+  }
+})
+
+// 获取主题图标
+const ThemeIcon = computed(() => {
+  switch (themeMode.value) {
+    case 'light':
+      return Sun
+    case 'dark':
+      return Moon
+    default:
+      return Monitor
+  }
+})
+
+// ========== 计算属性 ==========
 const displayUser = computed(() => {
   if (props.user) return props.user
   return {
@@ -28,22 +113,19 @@ const displayUser = computed(() => {
   }
 })
 
-// Navigate to home when clicking avatar
+// ========== 事件处理 ==========
+
+// 点击头像导航到首页
 const handleAvatarClick = () => {
   router.push('/')
 }
 
-// Show about modal when clicking logo
+// 点击 Logo 切换主题并显示提示
 const handleLogoClick = () => {
-  showAboutModal.value = true
+  cycleTheme()
 }
 
-// Close modal
-const closeModal = () => {
-  showAboutModal.value = false
-}
-
-// Open GitHub in new tab
+// 打开 GitHub
 const openGitHub = () => {
   globalThis.window.open(GITHUB_URL, '_blank', 'noopener,noreferrer')
 }
@@ -53,145 +135,104 @@ const openGitHub = () => {
   <div
     class="bg-white rounded-3xl p-8 shadow-sm relative flex flex-col items-center text-center transition-all duration-300 hover:shadow-md"
   >
-    <!-- Logo (Top Right) -->
+    <!-- Logo (右上角) - 点击切换主题 -->
     <div
       class="absolute top-6 right-6 text-gray-300 hover:text-emerald-500 transition-colors cursor-pointer"
-      title="About Pulse"
+      title="切换主题"
       @click="handleLogoClick"
     >
       <Activity :size="20" />
     </div>
 
-    <!-- Avatar - Clickable to go home -->
-    <div
-      class="w-28 h-28 rounded-full overflow-hidden mb-5 bg-gray-50 p-1 cursor-pointer transition-transform hover:scale-105"
-      title="Go to Home"
-      @click="handleAvatarClick"
-    >
-      <img
-        :src="displayUser.avatar_url"
-        :alt="displayUser.username"
-        class="w-full h-full object-cover rounded-full"
-      />
-    </div>
+    <!-- 骨架屏加载状态 -->
+    <template v-if="isLoading">
+      <!-- 头像骨架 -->
+      <div class="w-28 h-28 rounded-full mb-5 bg-gray-200 animate-pulse" />
+      <!-- 用户名骨架 -->
+      <div class="h-6 w-24 bg-gray-200 rounded-lg mb-2 animate-pulse" />
+      <!-- Bio 骨架 -->
+      <div class="h-4 w-32 bg-gray-200 rounded-lg animate-pulse" />
+      <!-- 按钮骨架 -->
+      <div class="mt-6 w-full">
+        <div class="h-10 w-full bg-gray-200 rounded-xl animate-pulse" />
+      </div>
+    </template>
 
-    <!-- Name -->
-    <h2 class="text-xl font-bold text-gray-800 mb-2 tracking-tight">
-      {{ displayUser.username }}
-    </h2>
-
-    <!-- Bio -->
-    <p class="text-gray-500 text-sm leading-relaxed px-2">
-      {{ displayUser.bio }}
-    </p>
-
-    <!-- Login Button (if guest) -->
-    <div v-if="!user" class="mt-6 w-full">
-      <a
-        href="/api/auth/github"
-        class="block w-full py-2 px-4 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
+    <!-- 正常内容 -->
+    <template v-else>
+      <!-- 头像 - 点击返回首页 -->
+      <div
+        class="w-28 h-28 rounded-full overflow-hidden mb-5 bg-gray-50 p-1 cursor-pointer transition-transform hover:scale-105"
+        title="返回首页"
+        @click="handleAvatarClick"
       >
-        Login with GitHub
-      </a>
-    </div>
-
-    <!-- Stats (if logged in) -->
-    <div v-else class="mt-6 pt-6 border-t border-gray-50 w-full">
-      <div class="flex justify-center gap-8 mb-4">
-        <div class="flex flex-col items-center">
-          <span class="font-bold text-gray-900 text-lg">{{ displayUser.post_count || 0 }}</span>
-          <span class="text-gray-400 text-xs uppercase tracking-wider">Pulses</span>
-        </div>
+        <img
+          :src="displayUser.avatar_url"
+          :alt="displayUser.username"
+          class="w-full h-full object-cover rounded-full"
+        />
       </div>
 
-      <!-- Admin Dashboard Link -->
-      <router-link
-        v-if="user?.is_admin"
-        to="/admin"
-        class="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
-      >
-        <Shield :size="16" />
-        Admin Dashboard
-      </router-link>
-    </div>
+      <!-- 用户名 -->
+      <h2 class="text-xl font-bold text-gray-800 mb-2 tracking-tight">
+        {{ displayUser.username }}
+      </h2>
 
-    <!-- About Modal -->
-    <Teleport to="body">
-      <Transition name="modal">
-        <div
-          v-if="showAboutModal"
-          class="fixed inset-0 z-50 flex items-start justify-end p-4"
-          @click.self="closeModal"
+      <!-- 个人简介 -->
+      <p class="text-gray-500 text-sm leading-relaxed px-2">
+        {{ displayUser.bio }}
+      </p>
+
+      <!-- 登录按钮 (未登录时显示) -->
+      <div v-if="!user" class="mt-6 w-full">
+        <a
+          href="/api/auth/github"
+          class="block w-full py-2 px-4 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
         >
-          <!-- Backdrop -->
-          <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="closeModal" />
+          Login with GitHub
+        </a>
+      </div>
 
-          <!-- Modal Content -->
-          <div
-            class="relative bg-white rounded-2xl shadow-2xl w-80 mt-16 mr-4 overflow-hidden animate-slide-in"
-          >
-            <!-- Header -->
-            <div class="relative p-6 pb-4 bg-linear-to-br from-gray-50 to-white">
-              <!-- Close Button -->
-              <button
-                class="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-                @click="closeModal"
-              >
-                <X :size="18" />
-              </button>
+      <!-- 统计信息 (已登录时显示) -->
+      <div v-else class="mt-6 pt-6 border-t border-gray-50 w-full">
+        <div class="flex justify-center gap-8 mb-4">
+          <div class="flex flex-col items-center">
+            <span class="font-bold text-gray-900 text-lg">{{ displayUser.post_count || 0 }}</span>
+            <span class="text-gray-400 text-xs uppercase tracking-wider">Pulses</span>
+          </div>
+        </div>
+      </div>
+    </template>
 
-              <!-- Logo & Title -->
-              <div class="flex items-center gap-3 mb-4">
-                <div
-                  class="w-12 h-12 bg-linear-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200"
-                >
-                  <Activity :size="24" class="text-white" />
-                </div>
-                <div>
-                  <h3 class="text-lg font-bold text-gray-900">Pulse</h3>
-                  <p class="text-sm text-gray-400">v{{ APP_VERSION }}</p>
-                </div>
-              </div>
-
-              <!-- Description -->
-              <p class="text-sm text-gray-600 leading-relaxed">
-                A minimalist social platform for sharing your daily moments with the community.
-              </p>
+    <!-- 浮动提示框 (右上角) -->
+    <Teleport to="body">
+      <Transition name="toast">
+        <div
+          v-if="showFloatingToast"
+          class="fixed top-4 right-4 z-50 bg-white rounded-xl shadow-lg border border-gray-100 p-3 min-w-56 animate-toast-in"
+        >
+          <div class="flex items-center gap-3">
+            <!-- 主题图标 -->
+            <div
+              class="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0"
+            >
+              <component :is="ThemeIcon" :size="18" class="text-gray-700" />
             </div>
 
-            <!-- Links -->
-            <div class="p-4 pt-0 space-y-2">
-              <!-- GitHub Link -->
-              <button
-                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group"
-                @click="openGitHub"
-              >
-                <Github :size="20" class="text-gray-700" />
-                <div class="flex-1 text-left">
-                  <span class="text-sm font-medium text-gray-900">GitHub Repository</span>
-                  <p class="text-xs text-gray-400">View source code</p>
-                </div>
-                <ExternalLink
-                  :size="16"
-                  class="text-gray-400 group-hover:text-gray-600 transition-colors"
-                />
-              </button>
-
-              <!-- Version Info -->
-              <div class="px-4 py-3 bg-gray-50 rounded-xl">
-                <div class="flex justify-between items-center text-sm">
-                  <span class="text-gray-500">Version</span>
-                  <span class="font-mono text-gray-900 bg-gray-100 px-2 py-0.5 rounded">{{
-                    APP_VERSION
-                  }}</span>
-                </div>
-              </div>
+            <!-- 信息 -->
+            <div class="flex-1 min-w-0">
+              <div class="text-xs text-gray-400 mb-0.5">当前版本: v{{ APP_VERSION }}</div>
+              <div class="text-sm font-medium text-gray-900">主题: {{ themeDisplayText }}</div>
             </div>
 
-            <!-- Footer -->
-            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100">
-              <p class="text-xs text-gray-400 text-center">Built with Vue 3 + Cloudflare</p>
-            </div>
+            <!-- GitHub 按钮 -->
+            <button
+              class="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer flex-shrink-0"
+              title="访问 GitHub"
+              @click.stop="openGitHub"
+            >
+              <Github :size="18" />
+            </button>
           </div>
         </div>
       </Transition>
@@ -200,30 +241,35 @@ const openGitHub = () => {
 </template>
 
 <style scoped>
-/* Modal Transition */
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.2s ease;
+/* Toast 进入/离开动画 */
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
 }
 
-.modal-enter-from,
-.modal-leave-to {
+.toast-enter-from {
   opacity: 0;
+  transform: translateX(20px);
 }
 
-/* Slide-in Animation */
-@keyframes slide-in {
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+/* Toast 弹入动画 */
+@keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateX(20px) scale(0.95);
+    transform: translateX(20px);
   }
   to {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    transform: translateX(0);
   }
 }
 
-.animate-slide-in {
-  animation: slide-in 0.25s ease-out;
+.animate-toast-in {
+  animation: toast-in 0.3s ease-out;
 }
 </style>

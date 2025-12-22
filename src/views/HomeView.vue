@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// 首页视图
+// 显示最新帖子列表、用户列表和活动热力图
+
 import { onMounted, ref, computed } from 'vue'
 import MainLayout from '../layouts/MainLayout.vue'
 import PostCard from '../components/PostCard.vue'
@@ -7,27 +10,49 @@ import { useAuthStore } from '../stores/auth'
 import { posts as postsApi, users as usersApi } from '../services/api'
 import type { User, Post } from '../types'
 
+// ========== Store ==========
 const authStore = useAuthStore()
 
-// State
+// ========== 状态 ==========
+
+// 用户列表
 const allUsers = ref<User[]>([])
+// 帖子列表
 const posts = ref<Post[]>([])
+// 帖子加载状态
 const isLoadingPosts = ref(true)
+// 用户加载状态
 const isLoadingUsers = ref(true)
+// 帖子加载错误
 const postsError = ref<string | null>(null)
+// 用户加载错误
 const usersError = ref<string | null>(null)
 
-// Pagination
+// ========== 分页 ==========
+
+// 当前页码
 const currentPage = ref(1)
+// 是否还有更多帖子
 const hasMorePosts = ref(false)
+// 是否正在加载更多
 const isLoadingMore = ref(false)
 
-// Computed
+// ========== 计算属性 ==========
+
+// 当前登录用户
 const currentUser = computed(() => authStore.currentUser)
+// 认证加载状态
+const isAuthLoading = computed(() => authStore.isLoading && !authStore.isInitialized)
+// 整体加载状态
 const isLoading = computed(() => isLoadingPosts.value || isLoadingUsers.value)
+// 是否有错误
 const hasError = computed(() => postsError.value || usersError.value)
 
-// Fetch users
+// ========== 方法 ==========
+
+/**
+ * 获取用户列表
+ */
 async function fetchUsers() {
   isLoadingUsers.value = true
   usersError.value = null
@@ -36,14 +61,18 @@ async function fetchUsers() {
     allUsers.value = await usersApi.list()
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Error fetching users:', error)
-    usersError.value = error instanceof Error ? error.message : 'Failed to load users'
+    console.error('获取用户列表失败:', error)
+    usersError.value = error instanceof Error ? error.message : '加载用户失败'
   } finally {
     isLoadingUsers.value = false
   }
 }
 
-// Fetch posts
+/**
+ * 获取帖子列表
+ * @param page - 页码
+ * @param append - 是否追加到现有列表
+ */
 async function fetchPosts(page: number = 1, append: boolean = false) {
   if (page === 1) {
     isLoadingPosts.value = true
@@ -65,37 +94,44 @@ async function fetchPosts(page: number = 1, append: boolean = false) {
     hasMorePosts.value = response.has_more
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Error fetching posts:', error)
-    postsError.value = error instanceof Error ? error.message : 'Failed to load posts'
+    console.error('获取帖子列表失败:', error)
+    postsError.value = error instanceof Error ? error.message : '加载帖子失败'
   } finally {
     isLoadingPosts.value = false
     isLoadingMore.value = false
   }
 }
 
-// Load more posts
+/**
+ * 加载更多帖子
+ */
 async function loadMorePosts() {
   if (isLoadingMore.value || !hasMorePosts.value) return
   await fetchPosts(currentPage.value + 1, true)
 }
 
-// Refresh all data
+/**
+ * 刷新所有数据
+ */
 async function refreshData() {
   currentPage.value = 1
   await Promise.all([fetchPosts(1), fetchUsers()])
 }
 
-// Handle post like toggle
+/**
+ * 处理帖子点赞切换
+ * @param postId - 帖子 ID
+ */
 async function handleLikeToggle(postId: string) {
   if (!authStore.isLoggedIn || !authStore.userId) {
-    // Redirect to login if not authenticated
+    // 未登录，不处理
     return
   }
 
   try {
     const result = await postsApi.toggleLike(postId)
 
-    // Update the post in our local state
+    // 更新本地帖子状态
     const postIndex = posts.value.findIndex(p => p.id === postId)
     const post = posts.value[postIndex]
     if (postIndex !== -1 && post) {
@@ -103,79 +139,108 @@ async function handleLikeToggle(postId: string) {
     }
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Error toggling like:', error)
+    console.error('点赞切换失败:', error)
   }
 }
 
-// Initialize data on mount
+/**
+ * 处理帖子删除
+ * @param postId - 帖子 ID
+ */
+async function handleDelete(postId: string) {
+  if (!authStore.isLoggedIn) return
+
+  try {
+    await postsApi.delete(postId)
+    // 从列表中移除
+    posts.value = posts.value.filter(p => p.id !== postId)
+    // 更新用户帖子数
+    if (authStore.currentUser) {
+      authStore.updateUserLocally({
+        post_count: Math.max(0, authStore.currentUser.post_count - 1),
+      })
+    }
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('删除帖子失败:', error)
+  }
+}
+
+// ========== 生命周期 ==========
+
 onMounted(async () => {
-  // Initialize auth if not already done
+  // 初始化认证（如果尚未初始化）
   if (!authStore.isInitialized) {
     await authStore.initialize()
   }
 
-  // Fetch data in parallel
+  // 并行获取数据
   await Promise.all([fetchPosts(), fetchUsers()])
 })
 </script>
 
 <template>
-  <MainLayout :current-user="currentUser" :all-users="allUsers" :posts="posts">
-    <!-- Feed Header -->
+  <MainLayout
+    :current-user="currentUser"
+    :all-users="allUsers"
+    :posts="posts"
+    :is-loading="isAuthLoading"
+  >
+    <!-- 信息流标题 -->
     <div class="mb-8 flex items-center justify-between">
       <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Latest Pulse</h1>
 
       <div class="flex items-center gap-3">
-        <!-- Refresh Button -->
+        <!-- 刷新按钮 -->
         <button
-          @click="refreshData"
           :disabled="isLoading"
           class="p-2.5 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-50 cursor-pointer"
-          title="Refresh"
+          title="刷新"
+          @click="refreshData"
         >
           <RefreshCw :size="18" :class="{ 'animate-spin': isLoading }" />
         </button>
 
-        <!-- New Post Button -->
+        <!-- 新建帖子按钮 -->
         <router-link
           v-if="authStore.isLoggedIn"
           to="/new"
           class="bg-gray-900 text-white px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200"
         >
-          New Post
+          发布动态
         </router-link>
         <router-link
           v-else
           to="/login"
           class="bg-gray-900 text-white px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200"
         >
-          Sign In
+          登录
         </router-link>
       </div>
     </div>
 
-    <!-- Loading State -->
+    <!-- 加载状态 -->
     <div v-if="isLoading && posts.length === 0" class="py-20 text-center">
       <Loader2 class="w-8 h-8 animate-spin text-gray-400 mx-auto mb-4" />
-      <p class="text-gray-500">Loading latest posts...</p>
+      <p class="text-gray-500">正在加载最新动态...</p>
     </div>
 
-    <!-- Error State -->
+    <!-- 错误状态 -->
     <div v-else-if="hasError && posts.length === 0" class="py-20 text-center bg-white rounded-3xl">
       <AlertCircle class="w-12 h-12 text-red-400 mx-auto mb-4" />
-      <h2 class="text-lg font-semibold text-gray-900 mb-2">Unable to load posts</h2>
+      <h2 class="text-lg font-semibold text-gray-900 mb-2">加载失败</h2>
       <p class="text-gray-500 text-sm mb-6">
         {{ postsError || usersError }}
       </p>
       <button
-        @click="refreshData"
         class="px-5 py-2.5 bg-gray-900 text-white rounded-xl font-medium text-sm hover:bg-gray-800 transition-colors cursor-pointer"
+        @click="refreshData"
       >
-        Try Again
+        重试
       </button>
     </div>
 
-    <!-- Empty State -->
+    <!-- 空状态 -->
     <div v-else-if="posts.length === 0" class="py-20 text-center bg-white rounded-3xl">
       <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -187,25 +252,25 @@ onMounted(async () => {
           />
         </svg>
       </div>
-      <h2 class="text-lg font-semibold text-gray-900 mb-2">No posts yet</h2>
-      <p class="text-gray-500 text-sm mb-6">Be the first to share something with the community!</p>
+      <h2 class="text-lg font-semibold text-gray-900 mb-2">暂无动态</h2>
+      <p class="text-gray-500 text-sm mb-6">成为第一个分享动态的人吧！</p>
       <router-link
         v-if="authStore.isLoggedIn"
         to="/new"
         class="inline-block px-5 py-2.5 bg-gray-900 text-white rounded-xl font-medium text-sm hover:bg-gray-800 transition-colors"
       >
-        Create First Post
+        发布第一条动态
       </router-link>
       <router-link
         v-else
         to="/login"
         class="inline-block px-5 py-2.5 bg-gray-900 text-white rounded-xl font-medium text-sm hover:bg-gray-800 transition-colors"
       >
-        Sign in to Post
+        登录后发布
       </router-link>
     </div>
 
-    <!-- Posts List -->
+    <!-- 帖子列表 -->
     <div v-else class="space-y-6">
       <PostCard
         v-for="post in posts"
@@ -213,23 +278,24 @@ onMounted(async () => {
         :post="post"
         :current-user-id="authStore.userId"
         @like="handleLikeToggle"
+        @delete="handleDelete"
       />
 
-      <!-- Load More -->
+      <!-- 加载更多 -->
       <div v-if="hasMorePosts" class="py-6 text-center">
         <button
-          @click="loadMorePosts"
           :disabled="isLoadingMore"
           class="px-6 py-3 bg-white text-gray-700 rounded-xl font-medium text-sm hover:bg-gray-50 transition-colors border border-gray-200 disabled:opacity-50 cursor-pointer"
+          @click="loadMorePosts"
         >
           <Loader2 v-if="isLoadingMore" class="w-4 h-4 animate-spin inline mr-2" />
-          {{ isLoadingMore ? 'Loading...' : 'Load More' }}
+          {{ isLoadingMore ? '加载中...' : '加载更多' }}
         </button>
       </div>
 
-      <!-- End of Feed -->
+      <!-- 已加载全部 -->
       <div v-else class="py-12 text-center">
-        <p class="text-gray-400 text-sm">You're all caught up!</p>
+        <p class="text-gray-400 text-sm">已经看完所有动态了！</p>
       </div>
     </div>
   </MainLayout>

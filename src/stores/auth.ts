@@ -1,5 +1,5 @@
 // Pinia 认证状态仓库
-// 全局认证状态管理
+// 全局认证状态管理，支持用户信息缓存
 
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
@@ -12,20 +12,69 @@ import {
 } from "../services/api";
 import type { User } from "../types";
 
+// 用户缓存键名
+const USER_CACHE_KEY = "pulse_user_cache";
+
+/**
+ * 从 localStorage 获取缓存的用户信息
+ */
+function getCachedUser(): User | null {
+	try {
+		const cached = localStorage.getItem(USER_CACHE_KEY);
+		if (cached) {
+			return JSON.parse(cached) as User;
+		}
+	} catch {
+		// 解析失败，清除无效缓存
+		localStorage.removeItem(USER_CACHE_KEY);
+	}
+	return null;
+}
+
+/**
+ * 将用户信息缓存到 localStorage
+ */
+function setCachedUser(user: User | null): void {
+	if (user) {
+		localStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
+	} else {
+		localStorage.removeItem(USER_CACHE_KEY);
+	}
+}
+
+/**
+ * 清除用户缓存
+ */
+function clearCachedUser(): void {
+	localStorage.removeItem(USER_CACHE_KEY);
+}
+
 export const useAuthStore = defineStore("auth", () => {
-	// 状态
-	const currentUser = ref<User | null>(null);
+	// ========== 状态 ==========
+
+	// 当前用户（优先从缓存加载，避免闪烁）
+	const currentUser = ref<User | null>(
+		isAuthenticated() ? getCachedUser() : null,
+	);
+	// 是否正在加载
 	const isLoading = ref(false);
+	// 错误信息
 	const error = ref<string | null>(null);
+	// 是否已完成初始化
 	const isInitialized = ref(false);
 
-	// 计算属性 / Getters
+	// ========== 计算属性 / Getters ==========
+
+	// 是否已登录
 	const isLoggedIn = computed(() => !!currentUser.value);
+	// 是否为管理员
 	const isAdmin = computed(() => currentUser.value?.is_admin ?? false);
+	// 当前用户 ID
 	const userId = computed(() => currentUser.value?.id ?? null);
+	// 当前用户名
 	const username = computed(() => currentUser.value?.username ?? null);
 
-	// Actions
+	// ========== Actions ==========
 
 	/**
 	 * 在应用挂载时初始化认证状态
@@ -39,12 +88,22 @@ export const useAuthStore = defineStore("auth", () => {
 
 		try {
 			if (isAuthenticated()) {
-				currentUser.value = await auth.me();
+				// 从服务器获取最新用户信息
+				const user = await auth.me();
+				currentUser.value = user;
+				// 更新缓存
+				setCachedUser(user);
+			} else {
+				// 未认证，清除可能存在的缓存
+				currentUser.value = null;
+				clearCachedUser();
 			}
 		} catch (e) {
 			// 令牌可能无效或已过期
+			// eslint-disable-next-line no-console
 			console.error("认证初始化失败:", e);
 			removeToken();
+			clearCachedUser();
 			currentUser.value = null;
 		} finally {
 			isLoading.value = false;
@@ -73,11 +132,15 @@ export const useAuthStore = defineStore("auth", () => {
 			setToken(token);
 
 			// 获取用户信息
-			currentUser.value = await auth.me();
+			const user = await auth.me();
+			currentUser.value = user;
+			// 缓存用户信息
+			setCachedUser(user);
 			return true;
 		} catch (e) {
 			error.value = e instanceof Error ? e.message : "认证失败";
 			removeToken();
+			clearCachedUser();
 			currentUser.value = null;
 			return false;
 		} finally {
@@ -90,6 +153,7 @@ export const useAuthStore = defineStore("auth", () => {
 	 */
 	function logout(): void {
 		auth.logout();
+		clearCachedUser();
 		currentUser.value = null;
 		error.value = null;
 	}
@@ -104,7 +168,10 @@ export const useAuthStore = defineStore("auth", () => {
 		error.value = null;
 
 		try {
-			currentUser.value = await auth.me();
+			const user = await auth.me();
+			currentUser.value = user;
+			// 更新缓存
+			setCachedUser(user);
 		} catch (e) {
 			error.value = e instanceof Error ? e.message : "刷新用户信息失败";
 		} finally {
@@ -128,6 +195,8 @@ export const useAuthStore = defineStore("auth", () => {
 				data,
 			);
 			currentUser.value = updatedUser;
+			// 更新缓存
+			setCachedUser(updatedUser);
 			return true;
 		} catch (e) {
 			error.value = e instanceof Error ? e.message : "更新资料失败";
@@ -143,7 +212,10 @@ export const useAuthStore = defineStore("auth", () => {
 	 */
 	function updateUserLocally(updates: Partial<User>): void {
 		if (currentUser.value) {
-			currentUser.value = { ...currentUser.value, ...updates };
+			const updatedUser = { ...currentUser.value, ...updates };
+			currentUser.value = updatedUser;
+			// 同步更新缓存
+			setCachedUser(updatedUser);
 		}
 	}
 

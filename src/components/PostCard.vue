@@ -1,61 +1,100 @@
 <script setup lang="ts">
+// 帖子卡片组件
+// 显示单个帖子的内容、图片、点赞和评论操作
+
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Heart, MessageCircle, Trash2, Edit3 } from 'lucide-vue-next'
 import { formatDistanceToNow } from 'date-fns'
+import { zhCN } from 'date-fns/locale'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import type { Post } from '../types'
 
+// ========== Props ==========
 const props = defineProps<{
+  // 帖子数据
   post: Post
+  // 当前登录用户 ID
   currentUserId?: string | null
 }>()
 
+// ========== Emits ==========
 const emit = defineEmits<{
+  // 点赞事件
   like: [postId: string]
+  // 删除事件
   delete: [postId: string]
 }>()
 
 const router = useRouter()
 
+// ========== 计算属性 ==========
+
+/**
+ * 格式化发布时间（相对时间）
+ */
 const formattedDate = computed(() => {
   try {
-    return formatDistanceToNow(new Date(props.post.created_at), { addSuffix: true })
+    return formatDistanceToNow(new Date(props.post.created_at), {
+      addSuffix: true,
+      locale: zhCN,
+    })
   } catch {
     return ''
   }
 })
 
-// Check if current user has liked this post
+/**
+ * 当前用户是否已点赞
+ */
 const isLiked = computed(() => {
   if (!props.currentUserId) return false
   return props.post.likes.includes(props.currentUserId)
 })
 
-// Check if current user is the author
+/**
+ * 当前用户是否为帖子作者
+ */
 const isAuthor = computed(() => {
   if (!props.currentUserId) return false
   return props.post.user_id === props.currentUserId
 })
 
+// ========== 方法 ==========
+
+/**
+ * 点击评论，跳转到帖子详情
+ */
 const handleCommentClick = () => {
   router.push(`/post/${props.post.id}`)
 }
 
+/**
+ * 点击点赞
+ */
 const handleLikeClick = () => {
   emit('like', props.post.id)
 }
 
+/**
+ * 点击删除（需确认）
+ */
 const handleDeleteClick = () => {
-  if (globalThis.window.confirm('Are you sure you want to delete this post?')) {
+  if (globalThis.window.confirm('确定要删除这条动态吗？')) {
     emit('delete', props.post.id)
   }
 }
 
+/**
+ * 点击编辑，跳转到编辑页面
+ */
 const handleEditClick = () => {
   router.push(`/post/${props.post.id}/edit`)
 }
 
+/**
+ * 点击头像或用户名，跳转到用户主页
+ */
 const navigateToProfile = () => {
   if (props.post.user?.username) {
     router.push(`/u/${props.post.user.username}`)
@@ -67,9 +106,10 @@ const navigateToProfile = () => {
   <div
     class="bg-white rounded-3xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6"
   >
-    <!-- Header: User Info & Time -->
+    <!-- 头部：用户信息和时间 -->
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
+        <!-- 头像 -->
         <div
           class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 cursor-pointer"
           @click="navigateToProfile"
@@ -82,41 +122,42 @@ const navigateToProfile = () => {
             class="w-full h-full object-cover"
           />
         </div>
+        <!-- 用户名和时间 -->
         <div class="flex flex-col">
           <span
             class="font-bold text-gray-900 text-sm cursor-pointer hover:underline"
             @click="navigateToProfile"
           >
-            {{ post.user?.username || 'Unknown User' }}
+            {{ post.user?.username || '未知用户' }}
           </span>
           <span class="text-xs text-gray-400">{{ formattedDate }}</span>
         </div>
       </div>
 
-      <!-- Author Actions -->
+      <!-- 作者操作按钮 -->
       <div v-if="isAuthor" class="flex items-center gap-2">
         <button
-          @click="handleEditClick"
           class="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-          title="Edit post"
+          title="编辑"
+          @click="handleEditClick"
         >
           <Edit3 :size="16" />
         </button>
         <button
-          @click="handleDeleteClick"
           class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
-          title="Delete post"
+          title="删除"
+          @click="handleDeleteClick"
         >
           <Trash2 :size="16" />
         </button>
       </div>
     </div>
 
-    <!-- Content with Markdown Rendering -->
+    <!-- 内容区（支持 Markdown 渲染） -->
     <div class="mb-6">
       <MarkdownRenderer :content="post.content" class="text-gray-800 text-lg font-medium" />
 
-      <!-- Images (if any) -->
+      <!-- 图片（如果有） -->
       <div
         v-if="post.images && post.images.length > 0"
         class="mt-4 grid gap-2"
@@ -126,15 +167,15 @@ const navigateToProfile = () => {
           v-for="(img, index) in post.images"
           :key="index"
           :src="img"
-          alt="Post image"
+          alt="帖子图片"
           class="rounded-2xl w-full h-auto object-cover max-h-96 bg-gray-50"
         />
       </div>
     </div>
 
-    <!-- Footer: Actions -->
+    <!-- 底部：操作按钮 -->
     <div class="flex items-center gap-6 text-gray-400">
-      <!-- Like -->
+      <!-- 点赞 -->
       <button
         class="flex items-center gap-2 group transition-colors focus:outline-none bg-transparent p-0 border-none shadow-none cursor-pointer"
         :class="isLiked ? 'text-rose-500' : 'hover:text-rose-500'"
@@ -148,7 +189,7 @@ const navigateToProfile = () => {
         <span class="text-sm font-medium">{{ post.likes.length }}</span>
       </button>
 
-      <!-- Comment -->
+      <!-- 评论 -->
       <button
         class="flex items-center gap-2 group transition-colors hover:text-blue-500 focus:outline-none bg-transparent p-0 border-none shadow-none cursor-pointer"
         @click="handleCommentClick"

@@ -1,102 +1,135 @@
 <script setup lang="ts">
+// Markdown 编辑器组件
+// 支持工具栏格式化、实时预览、字符统计等功能
+
 import { ref, computed } from 'vue'
 import { Eye, Edit3, Bold, Italic, Link, Image, List, Code, Quote, Heading } from 'lucide-vue-next'
 
+// ========== Props ==========
 const props = defineProps<{
+  // 编辑器内容（v-model）
   modelValue: string
+  // 占位符文本
   placeholder?: string
+  // 最小行数
   minRows?: number
+  // 最大字符数
   maxLength?: number
+  // 是否禁用
   disabled?: boolean
 }>()
 
+// ========== Emits ==========
 const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-// Mode: 'write' or 'preview'
+// ========== 状态 ==========
+
+// 编辑模式：'write' 写作 | 'preview' 预览
 const mode = ref<'write' | 'preview'>('write')
 
-// Local content for textarea
+// ========== 计算属性 ==========
+
+/**
+ * 双向绑定的内容
+ */
 const content = computed({
   get: () => props.modelValue,
   set: (value: string) => emit('update:modelValue', value),
 })
 
-// Character count
+/**
+ * 当前字符数
+ */
 const characterCount = computed(() => props.modelValue.length)
+
+/**
+ * 是否超出字符限制
+ */
 const isOverLimit = computed(() => {
   if (!props.maxLength) return false
   return characterCount.value > props.maxLength
 })
 
-// Simple Markdown to HTML parser
+/**
+ * 将 Markdown 转换为 HTML 用于预览
+ */
 const renderedContent = computed(() => {
-  if (!props.modelValue) return '<p class="text-gray-400 italic">Nothing to preview</p>'
+  if (!props.modelValue) return '<p class="text-gray-400 italic">暂无内容预览</p>'
 
   let html = props.modelValue
-    // Escape HTML
+    // 转义 HTML 特殊字符
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    // Headers
+    // 标题
     .replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold text-gray-900 mt-4 mb-2">$1</h3>')
     .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold text-gray-900 mt-4 mb-2">$1</h2>')
     .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-gray-900 mt-4 mb-2">$1</h1>')
-    // Bold
+    // 粗体
     .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold">$1</strong>')
     .replace(/__(.+?)__/g, '<strong class="font-bold">$1</strong>')
-    // Italic
+    // 斜体
     .replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
     .replace(/_(.+?)_/g, '<em class="italic">$1</em>')
-    // Code blocks
+    // 代码块
     .replace(
       /```(\w*)\n([\s\S]*?)```/g,
       '<pre class="bg-gray-100 rounded-lg p-4 my-3 overflow-x-auto"><code class="text-sm font-mono text-gray-800">$2</code></pre>'
     )
-    // Inline code
+    // 行内代码
     .replace(
       /`([^`]+)`/g,
       '<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-gray-800">$1</code>'
     )
-    // Blockquotes
+    // 引用
     .replace(
       /^> (.+)$/gm,
       '<blockquote class="border-l-4 border-gray-300 pl-4 my-3 text-gray-600 italic">$1</blockquote>'
     )
-    // Unordered lists
+    // 无序列表
     .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc">$1</li>')
     .replace(/^\* (.+)$/gm, '<li class="ml-4 list-disc">$1</li>')
-    // Ordered lists
+    // 有序列表
     .replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal">$1</li>')
-    // Links
+    // 链接
     .replace(
       /\[([^\]]+)\]\(([^)]+)\)/g,
       '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-emerald-600 hover:text-emerald-700 underline">$1</a>'
     )
-    // Images
+    // 图片
     .replace(
       /!\[([^\]]*)\]\(([^)]+)\)/g,
       '<img src="$2" alt="$1" class="rounded-xl max-w-full my-3" />'
     )
-    // Horizontal rule
+    // 分割线
     .replace(/^---$/gm, '<hr class="my-6 border-gray-200" />')
-    // Line breaks
+    // 换行
     .replace(/\n\n/g, '</p><p class="mb-3">')
     .replace(/\n/g, '<br />')
 
-  // Wrap in paragraph
+  // 包装成段落
   html = `<p class="mb-3">${html}</p>`
 
-  // Fix consecutive list items
+  // 修复连续列表项
   html = html.replace(/<\/li><br \/><li/g, '</li><li')
 
   return html
 })
 
-// Toolbar actions
+// ========== DOM 引用 ==========
+
 const textareaRef = ref<globalThis.HTMLTextAreaElement | null>(null)
 
+// ========== 方法 ==========
+
+/**
+ * 在光标位置插入文本
+ * @param before - 前缀文本
+ * @param after - 后缀文本
+ * @param placeholder - 默认占位文本
+ */
 function insertText(before: string, after: string = '', placeholder: string = '') {
   const textarea = textareaRef.value
   if (!textarea) return
@@ -111,121 +144,153 @@ function insertText(before: string, after: string = '', placeholder: string = ''
 
   content.value = newValue
 
-  // Set cursor position
+  // 设置光标位置
   globalThis.setTimeout(() => {
     textarea.focus()
     textarea.setSelectionRange(start + before.length, start + before.length + textToInsert.length)
   }, 0)
 }
 
+/**
+ * 插入粗体格式
+ */
 function insertBold() {
-  insertText('**', '**', 'bold text')
+  insertText('**', '**', '粗体文本')
 }
 
+/**
+ * 插入斜体格式
+ */
 function insertItalic() {
-  insertText('*', '*', 'italic text')
+  insertText('*', '*', '斜体文本')
 }
 
+/**
+ * 插入链接格式
+ */
 function insertLink() {
-  insertText('[', '](url)', 'link text')
+  insertText('[', '](链接地址)', '链接文本')
 }
 
+/**
+ * 插入图片格式
+ */
 function insertImage() {
-  insertText('![', '](image-url)', 'alt text')
+  insertText('![', '](图片地址)', '图片描述')
 }
 
+/**
+ * 插入列表格式
+ */
 function insertList() {
-  insertText('\n- ', '', 'list item')
+  insertText('\n- ', '', '列表项')
 }
 
+/**
+ * 插入行内代码格式
+ */
 function insertCode() {
-  insertText('`', '`', 'code')
+  insertText('`', '`', '代码')
 }
 
+/**
+ * 插入引用格式
+ */
 function insertQuote() {
-  insertText('\n> ', '', 'quote')
+  insertText('\n> ', '', '引用内容')
 }
 
+/**
+ * 插入标题格式
+ */
 function insertHeading() {
-  insertText('\n## ', '', 'heading')
+  insertText('\n## ', '', '标题')
 }
 </script>
 
 <template>
   <div class="markdown-editor rounded-2xl border border-gray-200 overflow-hidden bg-white">
-    <!-- Toolbar -->
+    <!-- 工具栏 -->
     <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200">
-      <!-- Formatting Buttons -->
+      <!-- 格式化按钮 -->
       <div class="flex items-center gap-1">
+        <!-- 标题 -->
         <button
           type="button"
           class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-          title="Heading"
+          title="标题"
           :disabled="mode === 'preview' || disabled"
           @click="insertHeading"
         >
           <Heading :size="16" />
         </button>
+        <!-- 粗体 -->
         <button
           type="button"
           class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-          title="Bold"
+          title="粗体"
           :disabled="mode === 'preview' || disabled"
           @click="insertBold"
         >
           <Bold :size="16" />
         </button>
+        <!-- 斜体 -->
         <button
           type="button"
           class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-          title="Italic"
+          title="斜体"
           :disabled="mode === 'preview' || disabled"
           @click="insertItalic"
         >
           <Italic :size="16" />
         </button>
         <div class="w-px h-5 bg-gray-200 mx-1" />
+        <!-- 链接 -->
         <button
           type="button"
           class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-          title="Link"
+          title="链接"
           :disabled="mode === 'preview' || disabled"
           @click="insertLink"
         >
           <Link :size="16" />
         </button>
+        <!-- 图片 -->
         <button
           type="button"
           class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-          title="Image"
+          title="图片"
           :disabled="mode === 'preview' || disabled"
           @click="insertImage"
         >
           <Image :size="16" />
         </button>
         <div class="w-px h-5 bg-gray-200 mx-1" />
+        <!-- 列表 -->
         <button
           type="button"
           class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-          title="List"
+          title="列表"
           :disabled="mode === 'preview' || disabled"
           @click="insertList"
         >
           <List :size="16" />
         </button>
+        <!-- 代码 -->
         <button
           type="button"
           class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-          title="Inline Code"
+          title="代码"
           :disabled="mode === 'preview' || disabled"
           @click="insertCode"
         >
           <Code :size="16" />
         </button>
+        <!-- 引用 -->
         <button
           type="button"
           class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-          title="Quote"
+          title="引用"
           :disabled="mode === 'preview' || disabled"
           @click="insertQuote"
         >
@@ -233,7 +298,7 @@ function insertHeading() {
         </button>
       </div>
 
-      <!-- Mode Toggle -->
+      <!-- 模式切换 -->
       <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
         <button
           type="button"
@@ -246,7 +311,7 @@ function insertHeading() {
           @click="mode = 'write'"
         >
           <Edit3 :size="14" />
-          Write
+          编辑
         </button>
         <button
           type="button"
@@ -259,25 +324,25 @@ function insertHeading() {
           @click="mode = 'preview'"
         >
           <Eye :size="14" />
-          Preview
+          预览
         </button>
       </div>
     </div>
 
-    <!-- Editor / Preview -->
+    <!-- 编辑器 / 预览区 -->
     <div class="min-h-50">
-      <!-- Write Mode -->
+      <!-- 编辑模式 -->
       <textarea
         v-show="mode === 'write'"
         ref="textareaRef"
         v-model="content"
-        :placeholder="placeholder || 'Write your content here... Markdown is supported!'"
+        :placeholder="placeholder || '写点什么吧... 支持 Markdown 语法！'"
         :rows="minRows || 8"
         :disabled="disabled"
         class="w-full px-4 py-4 text-gray-800 placeholder-gray-400 border-none focus:outline-none focus:ring-0 resize-none font-mono text-sm leading-relaxed"
       />
 
-      <!-- Preview Mode -->
+      <!-- 预览模式 -->
       <!-- eslint-disable-next-line vue/no-v-html -->
       <div
         v-show="mode === 'preview'"
@@ -286,10 +351,10 @@ function insertHeading() {
       />
     </div>
 
-    <!-- Footer -->
+    <!-- 底部信息栏 -->
     <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-t border-gray-200">
       <div class="flex items-center gap-2">
-        <span class="text-xs text-gray-400">Markdown supported</span>
+        <span class="text-xs text-gray-400">支持 Markdown 语法</span>
       </div>
       <div v-if="maxLength" class="text-xs" :class="isOverLimit ? 'text-red-500' : 'text-gray-400'">
         {{ characterCount }} / {{ maxLength }}
