@@ -172,7 +172,7 @@ function handleThemeChange() {
         <main class="lg:col-span-6 min-h-[80vh]">
           <!-- 移动端顶栏 -->
           <div
-            class="lg:hidden mb-6 flex items-center justify-between bg-white dark:bg-[#1a1a1a] p-4 rounded-3xl shadow-sm dark:shadow-none dark:border dark:border-gray-800"
+            class="lg:hidden mb-6 flex items-center justify-between bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm dark:shadow-none dark:border dark:border-gray-800"
           >
             <!-- Logo - 点击返回首页 -->
             <div
