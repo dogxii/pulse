@@ -1,8 +1,8 @@
 // 图片上传 API 处理器
 // POST /api/uploads - 上传图片（需要认证）
 
+import { getUser, uploadImage } from "../../_shared/db";
 import { extractToken, verifyJWT } from "../../_shared/jwt";
-import { getUser, uploadImage } from "../../_shared/r2";
 import { errors, handleCors, success } from "../../_shared/response";
 import type { Env } from "../../_shared/types";
 

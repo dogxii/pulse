@@ -1,8 +1,8 @@
 // 帖子点赞切换处理器
 // POST /api/posts/:id/like - 切换帖子的点赞状态
 
+import { getUser, toggleLike } from "../../../_shared/db";
 import { extractToken, verifyJWT } from "../../../_shared/jwt";
-import { getPost, getUser, toggleLike } from "../../../_shared/r2";
 import { errors, handleCors, success } from "../../../_shared/response";
 import type { Env } from "../../../_shared/types";
 
@@ -45,13 +45,7 @@ export const onRequestPost = async ({ request, env, params }: CFContext) => {
 			return errors.notFound("用户不存在");
 		}
 
-		// 验证帖子存在
-		const post = await getPost(env, id);
-		if (!post) {
-			return errors.notFound("帖子不存在");
-		}
-
-		// 切换点赞
+		// 切换点赞（toggleLike 内部会检查帖子是否存在）
 		const result = await toggleLike(env, id, payload.sub);
 		if (!result) {
 			return errors.internalError("切换点赞失败");

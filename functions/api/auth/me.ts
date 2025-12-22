@@ -1,8 +1,8 @@
 // 获取当前用户接口
 // GET /api/auth/me - 返回已认证用户的个人资料
 
+import { getUser } from "../../_shared/db";
 import { extractToken, verifyJWT } from "../../_shared/jwt";
-import { getUser } from "../../_shared/r2";
 import { errors, handleCors, success } from "../../_shared/response";
 import type { Env } from "../../_shared/types";
 
@@ -30,7 +30,7 @@ export const onRequestGet = async ({ request, env }: CFContext) => {
 		return errors.unauthorized("令牌无效或已过期");
 	}
 
-	// 从 R2 获取用户
+	// 从 D1 获取用户
 	const user = await getUser(env, payload.sub);
 	if (!user) {
 		return errors.notFound("用户不存在");

@@ -2,8 +2,8 @@
 // GET /api/posts - 获取帖子列表（分页）
 // POST /api/posts - 创建新帖子（需要认证）
 
+import { createPost, getPosts, getUser } from "../../_shared/db";
 import { extractToken, verifyJWT } from "../../_shared/jwt";
-import { createPost, getPosts, getUser } from "../../_shared/r2";
 import { errors, handleCors, paginated, success } from "../../_shared/response";
 import type { Env, Post } from "../../_shared/types";
 

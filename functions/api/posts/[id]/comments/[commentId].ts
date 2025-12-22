@@ -1,13 +1,13 @@
 // 单个评论 API 处理器
 // DELETE /api/posts/:id/comments/:commentId - 删除评论
 
-import { extractToken, verifyJWT } from "../../../../_shared/jwt";
 import {
 	deleteComment,
 	getComment,
 	getPost,
 	getUser,
-} from "../../../../_shared/r2";
+} from "../../../../_shared/db";
+import { extractToken, verifyJWT } from "../../../../_shared/jwt";
 import { errors, handleCors, success } from "../../../../_shared/response";
 import type { Env } from "../../../../_shared/types";
 

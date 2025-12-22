@@ -1,8 +1,9 @@
 // GitHub OAuth 回调处理器
 // GET /api/auth/callback - 处理来自 GitHub OAuth 的回调
 
+import { checkAccess, isAdmin } from "../../_shared/access";
+import { getUser, upsertUser } from "../../_shared/db";
 import { signJWT } from "../../_shared/jwt";
-import { upsertUser } from "../../_shared/r2";
 import { errors, handleCors, redirect } from "../../_shared/response";
 import type {
 	Env,
@@ -29,13 +30,14 @@ export const onRequestGet = async ({ request, env }: CFContext) => {
 	const code = url.searchParams.get("code");
 	const state = url.searchParams.get("state");
 	const errorParam = url.searchParams.get("error");
+	const frontendUrl = FRONTEND_URL || url.origin;
 
 	// 处理来自 GitHub 的 OAuth 错误
 	if (errorParam) {
 		const errorDescription =
 			url.searchParams.get("error_description") || "OAuth 错误";
 		return redirect(
-			`${FRONTEND_URL || ""}/login?error=${encodeURIComponent(errorDescription)}`,
+			`${frontendUrl}/login?error=${encodeURIComponent(errorDescription)}`,
 		);
 	}
 
@@ -101,11 +103,23 @@ export const onRequestGet = async ({ request, env }: CFContext) => {
 
 		const githubUser = (await userResponse.json()) as GitHubUser;
 
-		// 在 R2 中创建或更新用户
-		const existingUser = await import("../../_shared/r2").then((r2) =>
-			r2.getUser(env, githubUser.id.toString()),
-		);
+		// ========== 访问控制检查 ==========
+		const accessCheck = checkAccess(env, githubUser.login);
+		if (!accessCheck.allowed) {
+			// 用户被拒绝访问，重定向到登录页并显示错误
+			return redirect(
+				`${frontendUrl}/login?error=${encodeURIComponent(accessCheck.reason || "访问被拒绝")}`,
+			);
+		}
 
+		// ========== 管理员判断 ==========
+		// 从环境变量判断是否为管理员（优先级高于存储的数据）
+		const isUserAdmin = isAdmin(env, githubUser.login);
+
+		// 在 D1 中获取现有用户数据
+		const existingUser = await getUser(env, githubUser.id.toString());
+
+		// 构建用户对象
 		const user: User = {
 			id: githubUser.id.toString(),
 			username: githubUser.login,
@@ -114,7 +128,8 @@ export const onRequestGet = async ({ request, env }: CFContext) => {
 			joined_at: existingUser?.joined_at || new Date().toISOString(),
 			last_post_at: existingUser?.last_post_at || "",
 			post_count: existingUser?.post_count || 0,
-			is_admin: existingUser?.is_admin || false,
+			// 管理员状态：环境变量优先，否则保留现有状态
+			is_admin: isUserAdmin || existingUser?.is_admin || false,
 		};
 
 		await upsertUser(env, user);
@@ -130,7 +145,6 @@ export const onRequestGet = async ({ request, env }: CFContext) => {
 		);
 
 		// 清除 state cookie 并重定向到前端携带 token
-		const frontendUrl = FRONTEND_URL || url.origin;
 		const response = redirect(`${frontendUrl}/login/callback?token=${token}`);
 
 		// 清除 oauth_state cookie

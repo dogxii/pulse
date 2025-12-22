@@ -1,8 +1,11 @@
 // Cloudflare Pages Functions 环境类型定义
 
 export interface Env {
-	// R2 存储桶绑定
+	// R2 存储桶绑定（用于文件上传）
 	R2_BUCKET: R2Bucket;
+
+	// D1 数据库绑定（用于结构化数据）
+	DB: D1Database;
 
 	// 环境变量 / 密钥
 	GITHUB_CLIENT_ID: string;
@@ -11,7 +14,32 @@ export interface Env {
 
 	// 可选：前端 URL，用于重定向
 	FRONTEND_URL?: string;
+
+	// ========== 访问控制配置 ==========
+
+	// 管理员用户列表（GitHub 用户名，逗号分隔）
+	// 例如: "admin1,admin2,admin3"
+	ADMIN_USERS?: string;
+
+	// 访问模式: "open" | "whitelist" | "blacklist"
+	// - open: 开放模式，所有人可访问（默认）
+	// - whitelist: 白名单模式，只有白名单用户可访问
+	// - blacklist: 黑名单模式，黑名单用户不可访问
+	ACCESS_MODE?: string;
+
+	// 白名单用户列表（GitHub 用户名，逗号分隔）
+	// 仅在 ACCESS_MODE="whitelist" 时生效
+	// 例如: "user1,user2,user3"
+	ALLOWED_USERS?: string;
+
+	// 黑名单用户列表（GitHub 用户名，逗号分隔）
+	// 仅在 ACCESS_MODE="blacklist" 时生效
+	// 例如: "spammer1,spammer2"
+	BLOCKED_USERS?: string;
 }
+
+// 访问模式类型
+export type AccessMode = "open" | "whitelist" | "blacklist";
 
 // 从前端复用的共享类型
 export interface User {

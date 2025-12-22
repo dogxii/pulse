@@ -3,16 +3,53 @@ name = "pulse"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
 
-# R2 存储桶绑定
+# R2 存储桶绑定（用于文件上传）
 [[r2_buckets]]
 binding = "R2_BUCKET"
 bucket_name = "pulse-data"
 
-# 环境变量（在 Cloudflare Pages 控制台中设置为 Secrets）
+# D1 数据库绑定（用于结构化数据）
+[[d1_databases]]
+binding = "DB"
+database_name = "pulse-db"
+database_id = "aa33dd4a-3180-43ea-8806-52398f08a342"  # 部署时替换为实际的数据库 ID
+
+# ============ 环境变量配置说明 ============
+# 以下环境变量需要在 Cloudflare Pages 控制台中设置
+# Settings > Environment variables > Production/Preview
+
+# ---------- 必需的密钥（设置为 Secret） ----------
 # GITHUB_CLIENT_ID = "你的_github_oauth_app_client_id"
 # GITHUB_CLIENT_SECRET = "你的_github_oauth_app_client_secret"
 # JWT_SECRET = "你的_jwt_密钥_至少32个字符"
-# FRONTEND_URL = "https://your-domain.pages.dev"
+
+# ---------- 访问控制配置 ----------
+# ADMIN_USERS = "admin1,admin2"
+#   管理员用户列表（GitHub 用户名，逗号分隔）
+#   管理员拥有删除任意帖子/评论的权限，且始终可以访问
+
+# ACCESS_MODE = "open"
+#   访问模式，可选值：
+#   - "open": 开放模式，所有 GitHub 用户都可以访问（默认）
+#   - "whitelist": 白名单模式，只有白名单中的用户可以登录
+#   - "blacklist": 黑名单模式，黑名单中的用户无法登录
+
+# ALLOWED_USERS = "user1,user2,user3"
+#   白名单用户列表（GitHub 用户名，逗号分隔）
+#   仅在 ACCESS_MODE="whitelist" 时生效
+#   注意：管理员自动包含在白名单中
+
+# BLOCKED_USERS = "spammer1,spammer2"
+#   黑名单用户列表（GitHub 用户名，逗号分隔）
+#   仅在 ACCESS_MODE="blacklist" 时生效
+#   注意：管理员不受黑名单影响
 
 [vars]
 FRONTEND_URL = "https://pulse.dogxi.me"
+
+# 示例：小团队私有部署配置
+# [vars]
+# FRONTEND_URL = "https://your-team.pages.dev"
+# ACCESS_MODE = "whitelist"
+# ADMIN_USERS = "team-leader"
+# ALLOWED_USERS = "member1,member2,member3"

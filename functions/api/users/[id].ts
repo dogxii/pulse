@@ -2,8 +2,8 @@
 // GET /api/users/:id - 通过 ID 或用户名获取用户
 // PATCH /api/users/:id - 更新用户资料（仅本人）
 
+import { getUser, getUserByUsername, updateUser } from "../../_shared/db";
 import { extractToken, verifyJWT } from "../../_shared/jwt";
-import { getUser, getUserByUsername, updateUser } from "../../_shared/r2";
 import { errors, handleCors, success } from "../../_shared/response";
 import type { Env } from "../../_shared/types";
 

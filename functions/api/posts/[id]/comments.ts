@@ -2,13 +2,13 @@
 // GET /api/posts/:id/comments - 获取帖子的评论列表
 // POST /api/posts/:id/comments - 创建新评论
 
-import { extractToken, verifyJWT } from "../../../_shared/jwt";
 import {
 	createComment,
 	getComments,
 	getPost,
 	getUser,
-} from "../../../_shared/r2";
+} from "../../../_shared/db";
+import { extractToken, verifyJWT } from "../../../_shared/jwt";
 import { errors, handleCors, success } from "../../../_shared/response";
 import type { Comment, Env } from "../../../_shared/types";
 

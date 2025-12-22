@@ -1,7 +1,7 @@
 // 上传文件服务处理器
 // GET /api/uploads/:year/:filename - 从 R2 提供上传的文件
 
-import { getUpload } from "../../../_shared/r2";
+import { getUpload } from "../../../_shared/db";
 import { errors, handleCors } from "../../../_shared/response";
 import type { Env } from "../../../_shared/types";
 

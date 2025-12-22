@@ -1,7 +1,7 @@
 // 用户列表 API 处理器
 // GET /api/users - 获取所有用户列表
 
-import { getUsers } from "../../_shared/r2";
+import { getUsers } from "../../_shared/db";
 import { errors, handleCors, success } from "../../_shared/response";
 import type { Env } from "../../_shared/types";
 

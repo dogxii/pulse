@@ -3,8 +3,8 @@
 // PATCH /api/posts/:id - 更新帖子（仅作者）
 // DELETE /api/posts/:id - 删除帖子（作者或管理员）
 
+import { deletePost, getPost, getUser, updatePost } from "../../_shared/db";
 import { extractToken, verifyJWT } from "../../_shared/jwt";
-import { deletePost, getPost, getUser, updatePost } from "../../_shared/r2";
 import { errors, handleCors, success } from "../../_shared/response";
 import type { Env } from "../../_shared/types";
 
