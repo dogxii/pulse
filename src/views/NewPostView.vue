@@ -173,8 +173,8 @@ function goBack() {
       <!-- Header -->
       <div class="flex items-center gap-4 mb-8">
         <button
-          @click="goBack"
           class="p-2 rounded-xl hover:bg-white dark:hover:bg-gray-800 transition-colors cursor-pointer"
+          @click="goBack"
         >
           <ArrowLeft :size="20" class="text-gray-600 dark:text-gray-400" />
         </button>
@@ -252,8 +252,8 @@ function goBack() {
                 class="rounded-xl w-full h-40 object-cover bg-gray-50 dark:bg-gray-800"
               />
               <button
-                @click="removeImage(index)"
                 class="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                @click="removeImage(index)"
               >
                 <X :size="14" />
               </button>
@@ -292,9 +292,9 @@ function goBack() {
 
           <!-- Submit Button -->
           <button
-            @click="handleSubmit"
-            :disabled="!canSubmit"
             class="px-6 py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-medium text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            :disabled="!canSubmit"
+            @click="handleSubmit"
           >
             <Loader2 v-if="isSubmitting" :size="18" class="animate-spin inline mr-2" />
             {{ isSubmitting ? 'Posting...' : 'Post' }}
@@ -307,12 +307,12 @@ function goBack() {
         <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Markdown Tips</h3>
         <div class="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400">
           <div>
-            <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">**bold**</code> →
-            <strong>bold</strong>
+            <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">**粗体**</code> →
+            <strong>粗体</strong>
           </div>
           <div>
-            <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">*italic*</code> →
-            <em>italic</em>
+            <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">*斜体*</code> →
+            <em>斜体</em>
           </div>
           <div>
             <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">`code`</code> →
@@ -321,10 +321,8 @@ function goBack() {
           <div>
             <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">[link](url)</code> → link
           </div>
-          <div>
-            <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded"># Heading</code> → Heading
-          </div>
-          <div><code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">> quote</code> → Quote</div>
+          <div><code class="bg-gray-100 dark:bg-gray-800 px-1 rounded"># 标题</code> → 标题</div>
+          <div><code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">> 引用</code> → 引用</div>
         </div>
       </div>
     </div>

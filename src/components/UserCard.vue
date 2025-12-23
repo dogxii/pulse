@@ -227,7 +227,7 @@ const openGitHub = () => {
           <div class="flex items-center gap-3">
             <!-- 主题图标 -->
             <div
-              class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0"
+              class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0"
             >
               <component :is="ThemeIcon" :size="18" class="text-gray-700 dark:text-gray-300" />
             </div>
@@ -244,7 +244,7 @@ const openGitHub = () => {
 
             <!-- GitHub 按钮 -->
             <button
-              class="p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer flex-shrink-0"
+              class="p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
               title="访问 GitHub"
               @click.stop="openGitHub"
             >

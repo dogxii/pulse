@@ -295,7 +295,7 @@ onMounted(async () => {
         <div class="flex flex-col md:flex-row md:items-start gap-6">
           <!-- 头像 -->
           <div
-            class="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 mx-auto md:mx-0"
+            class="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0 mx-auto md:mx-0"
           >
             <img
               :src="user.avatar_url || `https://api.dicebear.com/9.x/micah/svg?seed=${user.id}`"

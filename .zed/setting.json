@@ -6,4 +6,9 @@
       },
     },
   },
+  "languages": {
+    "Vue.js": {
+      "language_servers": ["!biome", "vue-language-server"],
+    },
+  },
 }

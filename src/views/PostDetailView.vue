@@ -346,7 +346,7 @@ onMounted(async () => {
                 :key="index"
                 :src="img"
                 alt="帖子图片"
-                class="rounded-2xl w-auto h-auto object-cover max-h-[500px] bg-gray-50 dark:bg-gray-800"
+                class="rounded-2xl w-auto h-auto object-cover max-h-125 bg-gray-50 dark:bg-gray-800"
               />
             </div>
           </div>
@@ -406,7 +406,7 @@ onMounted(async () => {
 
             <div class="flex items-start gap-3">
               <div
-                class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0"
+                class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0"
               >
                 <img
                   :src="
@@ -464,7 +464,7 @@ onMounted(async () => {
             >
               <!-- 评论者头像 -->
               <div
-                class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0 cursor-pointer"
+                class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 cursor-pointer"
                 @click="navigateToProfile(comment.user)"
               >
                 <img
@@ -501,7 +501,7 @@ onMounted(async () => {
                     删除
                   </button>
                 </div>
-                <p class="text-gray-700 dark:text-gray-300 text-sm break-words">
+                <p class="text-gray-700 dark:text-gray-300 text-sm wrap-break-words">
                   {{ comment.content }}
                 </p>
               </div>

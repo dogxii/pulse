@@ -34,15 +34,15 @@ function goHome() {
       <!-- Actions -->
       <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
         <button
-          @click="goBack"
           class="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700 cursor-pointer"
+          @click="goBack"
         >
           <ArrowLeft :size="18" />
           <span>Go Back</span>
         </button>
         <button
-          @click="goHome"
           class="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors cursor-pointer"
+          @click="goHome"
         >
           <Home :size="18" />
           <span>Go Home</span>
