@@ -294,7 +294,7 @@ onMounted(async () => {
               <span class="font-bold text-gray-900 dark:text-gray-100 text-sm">
                 {{ authStore.currentUser?.username }}
               </span>
-              <p class="text-xs text-gray-400 dark:text-gray-500">编辑帖子</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500">Editing post</p>
             </div>
           </div>
 

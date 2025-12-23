@@ -219,7 +219,7 @@ function goBack() {
             <span class="font-bold text-gray-900 dark:text-gray-100 text-sm">
               {{ authStore.currentUser?.username }}
             </span>
-            <p class="text-xs text-gray-400 dark:text-gray-500">公开发帖</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500">Posting publicly</p>
           </div>
         </div>
 
