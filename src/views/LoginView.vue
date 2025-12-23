@@ -19,7 +19,7 @@ const handleLogin = () => {
         <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight mb-2">
           Pulse
         </h1>
-        <p class="text-gray-500 dark:text-gray-400">与世界分享你的想法!</p>
+        <p class="text-gray-500 dark:text-gray-400">与世界分享你的脉冲!</p>
       </div>
 
       <!-- Login Card -->

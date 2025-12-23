@@ -14,7 +14,7 @@ const props = defineProps<{
 const router = useRouter()
 
 // ========== 常量 ==========
-const APP_VERSION = '1.0.0'
+const APP_VERSION = '0.1.0'
 const GITHUB_URL = 'https://github.com/dogxii/pulse'
 
 // ========== 主题状态 ==========
@@ -108,7 +108,7 @@ const displayUser = computed(() => {
   return {
     username: 'Guest',
     avatar_url: './guest.svg',
-    bio: 'Sign in to share your pulse.',
+    bio: '登录以分享您的 Pulse (脉冲)',
     post_count: 0,
     is_admin: false,
   }

@@ -26,9 +26,7 @@ function goHome() {
           <span class="text-5xl font-bold text-gray-300 dark:text-gray-600">404</span>
         </div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Page Not Found</h1>
-        <p class="text-gray-500 dark:text-gray-400">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
+        <p class="text-gray-500 dark:text-gray-400">您正在查找的页面不存在或已被移动。</p>
       </div>
 
       <!-- Actions -->
@@ -38,14 +36,14 @@ function goHome() {
           @click="goBack"
         >
           <ArrowLeft :size="18" />
-          <span>Go Back</span>
+          <span>返回</span>
         </button>
         <button
           class="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors cursor-pointer"
           @click="goHome"
         >
           <Home :size="18" />
-          <span>Go Home</span>
+          <span>返回主页</span>
         </button>
       </div>
 
