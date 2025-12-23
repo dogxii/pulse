@@ -38,19 +38,19 @@ const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'ima
 async function uploadFile(file: globalThis.File) {
   // Validate file type
   if (!allowedTypes.includes(file.type)) {
-    error.value = 'Please select a valid image file (JPEG, PNG, GIF, WebP, or AVIF)'
+    error.value = '请选择一个有效图片文件 (JPEG, PNG, GIF, WebP, or AVIF)'
     return
   }
 
   // Validate file size (5MB max)
   if (file.size > 5 * 1024 * 1024) {
-    error.value = 'Image must be less than 5MB'
+    error.value = '图片大小必须小于 5MB'
     return
   }
 
   // Check if we can upload more
   if (!canUploadMore.value) {
-    error.value = `Maximum ${MAX_IMAGES} images allowed`
+    error.value = `最多上传 ${MAX_IMAGES} 张图片`
     return
   }
 
@@ -61,7 +61,7 @@ async function uploadFile(file: globalThis.File) {
     const result = await uploads.uploadImage(file)
     images.value.push(result.url)
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Failed to upload image'
+    error.value = e instanceof Error ? e.message : '上传图片失败'
   } finally {
     isUploading.value = false
   }
@@ -156,7 +156,7 @@ async function handleSubmit() {
     // Navigate back to home
     router.push('/')
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Failed to create post'
+    error.value = e instanceof Error ? e.message : '创建帖子失败'
     isSubmitting.value = false
   }
 }
@@ -178,7 +178,7 @@ function goBack() {
         >
           <ArrowLeft :size="20" class="text-gray-600 dark:text-gray-400" />
         </button>
-        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">New Post</h1>
+        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">新建帖子</h1>
       </div>
 
       <!-- Form Card with Drop Zone -->
@@ -197,9 +197,9 @@ function goBack() {
         >
           <div class="text-center">
             <Image :size="48" class="mx-auto mb-3 text-blue-500 dark:text-blue-400" />
-            <p class="text-blue-600 dark:text-blue-400 font-medium">Drop image here</p>
+            <p class="text-blue-600 dark:text-blue-400 font-medium">拖动图片到这里</p>
             <p class="text-blue-500/70 dark:text-blue-500/70 text-sm mt-1">
-              {{ images.length }}/{{ MAX_IMAGES }} images
+              {{ images.length }}/{{ MAX_IMAGES }} 图片
             </p>
           </div>
         </div>
@@ -219,7 +219,7 @@ function goBack() {
             <span class="font-bold text-gray-900 dark:text-gray-100 text-sm">
               {{ authStore.currentUser?.username }}
             </span>
-            <p class="text-xs text-gray-400 dark:text-gray-500">Posting publicly</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500">公开发帖</p>
           </div>
         </div>
 
@@ -235,7 +235,7 @@ function goBack() {
         <div class="mb-6">
           <MarkdownEditor
             v-model="content"
-            placeholder="What's on your mind?"
+            placeholder="记录下来你的想法..."
             :max-length="MAX_CONTENT_LENGTH"
             :min-rows="6"
             :disabled="isSubmitting"
@@ -275,7 +275,7 @@ function goBack() {
               <Loader2 v-if="isUploading" :size="18" class="animate-spin" />
               <Image v-else :size="18" />
               <span class="text-sm font-medium">
-                {{ isUploading ? 'Uploading...' : 'Add Image' }}
+                {{ isUploading ? '上传中...' : '添加图片' }}
               </span>
               <input
                 type="file"
@@ -286,7 +286,7 @@ function goBack() {
               />
             </label>
             <span v-if="images.length > 0" class="text-xs text-gray-400 dark:text-gray-500">
-              {{ images.length }}/{{ MAX_IMAGES }} images
+              {{ images.length }}/{{ MAX_IMAGES }} 图片
             </span>
           </div>
 
@@ -297,7 +297,7 @@ function goBack() {
             @click="handleSubmit"
           >
             <Loader2 v-if="isSubmitting" :size="18" class="animate-spin inline mr-2" />
-            {{ isSubmitting ? 'Posting...' : 'Post' }}
+            {{ isSubmitting ? '发布中...' : '发布' }}
           </button>
         </div>
       </div>

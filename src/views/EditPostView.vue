@@ -57,7 +57,7 @@ async function fetchPost() {
 
     // Check if current user is the author
     if (fetchedPost.user_id !== authStore.userId) {
-      loadError.value = 'You can only edit your own posts'
+      loadError.value = '你只可以编辑你自己的帖子'
       return
     }
 
@@ -67,7 +67,7 @@ async function fetchPost() {
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error('Error fetching post:', e)
-    loadError.value = e instanceof Error ? e.message : 'Failed to load post'
+    loadError.value = e instanceof Error ? e.message : '加载帖子失败'
   } finally {
     isLoading.value = false
   }
@@ -77,19 +77,19 @@ async function fetchPost() {
 async function uploadFile(file: globalThis.File) {
   // Validate file type
   if (!allowedTypes.includes(file.type)) {
-    error.value = 'Please select a valid image file (JPEG, PNG, GIF, WebP, or AVIF)'
+    error.value = '请选择一个有效图片文件 (JPEG, PNG, GIF, WebP, or AVIF)'
     return
   }
 
   // Validate file size (5MB max)
   if (file.size > 5 * 1024 * 1024) {
-    error.value = 'Image must be less than 5MB'
+    error.value = '图片大小必须小于 5MB'
     return
   }
 
   // Check if we can upload more
   if (!canUploadMore.value) {
-    error.value = `Maximum ${MAX_IMAGES} images allowed`
+    error.value = `最多上传 ${MAX_IMAGES} 张图片`
     return
   }
 
@@ -100,7 +100,7 @@ async function uploadFile(file: globalThis.File) {
     const result = await uploads.uploadImage(file)
     images.value.push(result.url)
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Failed to upload image'
+    error.value = e instanceof Error ? e.message : '上传图片失败'
   } finally {
     isUploading.value = false
   }
@@ -186,7 +186,7 @@ async function handleSubmit() {
     // Navigate back to the post detail
     router.push(`/post/${post.value.id}`)
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Failed to update post'
+    error.value = e instanceof Error ? e.message : '更新帖子失败'
     isSubmitting.value = false
   }
 }
@@ -194,9 +194,7 @@ async function handleSubmit() {
 // Discard changes and go back
 function handleCancel() {
   if (hasChanges.value) {
-    if (
-      !globalThis.window.confirm('You have unsaved changes. Are you sure you want to discard them?')
-    ) {
+    if (!globalThis.window.confirm('你有未保存更改. 你想要放弃更改它们吗？')) {
       return
     }
   }
@@ -234,27 +232,25 @@ onMounted(async () => {
         >
           <ArrowLeft :size="20" class="text-gray-600 dark:text-gray-400" />
         </button>
-        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">Edit Post</h1>
+        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">编辑帖子</h1>
       </div>
 
       <!-- Loading State -->
       <div v-if="isLoading" class="py-20 text-center">
         <Loader2 class="w-8 h-8 animate-spin text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-        <p class="text-gray-500 dark:text-gray-400">Loading post...</p>
+        <p class="text-gray-500 dark:text-gray-400">加载帖子...</p>
       </div>
 
       <!-- Load Error State -->
       <div v-else-if="loadError" class="py-20 text-center bg-white dark:bg-gray-900 rounded-3xl">
         <AlertCircle class="w-12 h-12 text-red-400 mx-auto mb-4" />
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-          Unable to load post
-        </h2>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">无法加载帖子</h2>
         <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">{{ loadError }}</p>
         <button
           class="px-5 py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-medium text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors cursor-pointer"
           @click="goBack"
         >
-          Go Back
+          返回
         </button>
       </div>
 
@@ -276,9 +272,9 @@ onMounted(async () => {
           >
             <div class="text-center">
               <Image :size="48" class="mx-auto mb-3 text-blue-500 dark:text-blue-400" />
-              <p class="text-blue-600 dark:text-blue-400 font-medium">Drop image here</p>
+              <p class="text-blue-600 dark:text-blue-400 font-medium">拖动图片到这里</p>
               <p class="text-blue-500/70 dark:text-blue-500/70 text-sm mt-1">
-                {{ images.length }}/{{ MAX_IMAGES }} images
+                {{ images.length }}/{{ MAX_IMAGES }} 图片
               </p>
             </div>
           </div>
@@ -298,7 +294,7 @@ onMounted(async () => {
               <span class="font-bold text-gray-900 dark:text-gray-100 text-sm">
                 {{ authStore.currentUser?.username }}
               </span>
-              <p class="text-xs text-gray-400 dark:text-gray-500">Editing post</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500">编辑帖子</p>
             </div>
           </div>
 
@@ -314,7 +310,7 @@ onMounted(async () => {
           <div class="mb-6">
             <MarkdownEditor
               v-model="content"
-              placeholder="What's on your mind?"
+              placeholder="记录下来你的想法..."
               :max-length="MAX_CONTENT_LENGTH"
               :min-rows="6"
               :disabled="isSubmitting"
@@ -354,7 +350,7 @@ onMounted(async () => {
                 <Loader2 v-if="isUploading" :size="18" class="animate-spin" />
                 <Image v-else :size="18" />
                 <span class="text-sm font-medium">
-                  {{ isUploading ? 'Uploading...' : 'Add Image' }}
+                  {{ isUploading ? '上传中...' : '添加图片' }}
                 </span>
                 <input
                   type="file"
@@ -365,7 +361,7 @@ onMounted(async () => {
                 />
               </label>
               <span v-if="images.length > 0" class="text-xs text-gray-400 dark:text-gray-500">
-                {{ images.length }}/{{ MAX_IMAGES }} images
+                {{ images.length }}/{{ MAX_IMAGES }} 图片
               </span>
             </div>
 
@@ -384,7 +380,7 @@ onMounted(async () => {
                 @click="handleSubmit"
               >
                 <Loader2 v-if="isSubmitting" :size="18" class="animate-spin inline mr-2" />
-                {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
+                {{ isSubmitting ? '保存中...' : '保存更改' }}
               </button>
             </div>
           </div>
@@ -395,12 +391,12 @@ onMounted(async () => {
           <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Markdown Tips</h3>
           <div class="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400">
             <div>
-              <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">**bold**</code> →
-              <strong>bold</strong>
+              <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">**粗体**</code> →
+              <strong>粗体</strong>
             </div>
             <div>
-              <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">*italic*</code> →
-              <em>italic</em>
+              <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">*斜体*</code> →
+              <em>斜体</em>
             </div>
             <div>
               <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">`code`</code> →
@@ -409,12 +405,8 @@ onMounted(async () => {
             <div>
               <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">[link](url)</code> → link
             </div>
-            <div>
-              <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded"># Heading</code> → Heading
-            </div>
-            <div>
-              <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">> quote</code> → Quote
-            </div>
+            <div><code class="bg-gray-100 dark:bg-gray-800 px-1 rounded"># 标题</code> → 标题</div>
+            <div><code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">> 引用</code> → 引用</div>
           </div>
         </div>
       </div>
