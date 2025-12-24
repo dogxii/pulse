@@ -1,12 +1,14 @@
 <script setup lang="ts">
 // 主布局组件
 // 包含左侧用户卡片、中间主内容区、右侧社区墙
+// 包含 PWA 更新通知
 
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Sun, Moon, Monitor, User as UserIcon, LogIn } from 'lucide-vue-next'
+import { Sun, Moon, Monitor, User as UserIcon, LogIn, RefreshCw, X } from 'lucide-vue-next'
 import UserCard from '../components/UserCard.vue'
 import UserWall from '../components/UserWall.vue'
+import { usePWA } from '../composables/usePWA'
 import type { User, Post } from '../types'
 
 // ========== Props ==========
@@ -31,6 +33,27 @@ const props = withDefaults(
 
 const router = useRouter()
 
+// ========== PWA ==========
+const { hasUpdate, applyUpdate } = usePWA()
+const showUpdateBanner = ref(false)
+
+// 监听更新状态
+watch(hasUpdate, newValue => {
+  if (newValue) {
+    showUpdateBanner.value = true
+  }
+})
+
+// 关闭更新提示
+function dismissUpdate() {
+  showUpdateBanner.value = false
+}
+
+// 应用更新
+function handleUpdate() {
+  applyUpdate()
+}
+
 // ========== 移动端菜单状态 ==========
 const showMobileMenu = ref(false)
 const menuRef = ref<HTMLDivElement | null>(null)
@@ -48,15 +71,15 @@ onMounted(() => {
   applyTheme(themeMode.value)
 
   // 添加点击外部关闭菜单的监听
-  document.addEventListener('click', handleClickOutside)
+  globalThis.document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
+  globalThis.document.removeEventListener('click', handleClickOutside)
 })
 
 // 点击外部关闭菜单
-function handleClickOutside(event: MouseEvent) {
+function handleClickOutside(event: globalThis.MouseEvent) {
   if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
     showMobileMenu.value = false
   }
@@ -64,7 +87,7 @@ function handleClickOutside(event: MouseEvent) {
 
 // 应用主题
 function applyTheme(mode: ThemeMode) {
-  const root = document.documentElement
+  const root = globalThis.document.documentElement
   if (mode === 'dark') {
     root.classList.add('dark')
   } else if (mode === 'light') {
@@ -124,7 +147,7 @@ function handleLogoClick() {
 }
 
 // 点击头像切换菜单
-function toggleMobileMenu(event: MouseEvent) {
+function toggleMobileMenu(event: globalThis.MouseEvent) {
   event.stopPropagation()
   showMobileMenu.value = !showMobileMenu.value
 }
@@ -169,6 +192,42 @@ const todayPostCount = computed(() => {
   <div
     class="min-h-screen bg-gray-50/50 dark:bg-[#0f0f0f] text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300"
   >
+    <!-- PWA 更新通知 -->
+    <Transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="opacity-0 -translate-y-full"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-full"
+    >
+      <div
+        v-if="showUpdateBanner"
+        class="fixed top-0 left-0 right-0 z-50 bg-emerald-500 dark:bg-emerald-600 text-white px-4 py-3 shadow-lg"
+      >
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <RefreshCw :size="18" class="animate-spin-slow" />
+            <span class="text-sm font-medium">新版本可用！刷新以获取最新功能。</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              class="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+              @click="handleUpdate"
+            >
+              立即更新
+            </button>
+            <button
+              class="p-1.5 hover:bg-white/20 rounded-lg transition-colors cursor-pointer"
+              @click="dismissUpdate"
+            >
+              <X :size="18" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 py-8">
         <!-- 左侧边栏（用户资料卡片） -->
@@ -211,7 +270,7 @@ const todayPostCount = computed(() => {
                 @click="toggleMobileMenu"
               >
                 <img
-                  :src="currentUser?.avatar_url || './guest.svg'"
+                  :src="currentUser?.avatar_url || '/guest.svg'"
                   alt="Avatar"
                   class="w-full h-full object-cover"
                 />

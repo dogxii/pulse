@@ -3,11 +3,13 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Image, X, Loader2 } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
+import { usePostsStore } from '../stores/posts'
 import { posts as postsApi, uploads } from '../services/api'
 import MarkdownEditor from '../components/MarkdownEditor.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const postsStore = usePostsStore()
 
 // Form state
 const content = ref('')
@@ -80,7 +82,7 @@ async function handleImageUpload(event: globalThis.Event) {
 }
 
 // Handle drag and drop
-function handleDragEnter(e: DragEvent) {
+function handleDragEnter(e: globalThis.DragEvent) {
   e.preventDefault()
   e.stopPropagation()
   if (canUploadMore.value && !isUploading.value) {
@@ -88,23 +90,23 @@ function handleDragEnter(e: DragEvent) {
   }
 }
 
-function handleDragLeave(e: DragEvent) {
+function handleDragLeave(e: globalThis.DragEvent) {
   e.preventDefault()
   e.stopPropagation()
   // Only set to false if we're leaving the drop zone entirely
-  const relatedTarget = e.relatedTarget as Node | null
-  const currentTarget = e.currentTarget as Node
+  const relatedTarget = e.relatedTarget as globalThis.Node | null
+  const currentTarget = e.currentTarget as globalThis.Node
   if (!currentTarget.contains(relatedTarget)) {
     isDragging.value = false
   }
 }
 
-function handleDragOver(e: DragEvent) {
+function handleDragOver(e: globalThis.DragEvent) {
   e.preventDefault()
   e.stopPropagation()
 }
 
-async function handleDrop(e: DragEvent) {
+async function handleDrop(e: globalThis.DragEvent) {
   e.preventDefault()
   e.stopPropagation()
   isDragging.value = false
@@ -140,10 +142,13 @@ async function handleSubmit() {
   error.value = null
 
   try {
-    await postsApi.create({
+    const newPost = await postsApi.create({
       content: content.value.trim(),
       images: images.value.length > 0 ? images.value : undefined,
     })
+
+    // Add new post to store (appears at top of list)
+    postsStore.addPost(newPost)
 
     // Update user's post count locally
     if (authStore.currentUser) {

@@ -1,41 +1,30 @@
 <script setup lang="ts">
 // 首页视图
 // 显示最新帖子列表、用户列表和活动热力图
+// 使用 posts store 实现乐观更新
 
 import { onMounted, ref, computed } from 'vue'
 import MainLayout from '../layouts/MainLayout.vue'
 import PostCard from '../components/PostCard.vue'
+import ScrollToTop from '../components/ScrollToTop.vue'
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
-import { posts as postsApi, users as usersApi } from '../services/api'
-import type { User, Post } from '../types'
+import { usePostsStore } from '../stores/posts'
+import { users as usersApi } from '../services/api'
+import type { User } from '../types'
 
 // ========== Store ==========
 const authStore = useAuthStore()
+const postsStore = usePostsStore()
 
 // ========== 状态 ==========
 
 // 用户列表
 const allUsers = ref<User[]>([])
-// 帖子列表
-const posts = ref<Post[]>([])
-// 帖子加载状态
-const isLoadingPosts = ref(true)
 // 用户加载状态
 const isLoadingUsers = ref(true)
-// 帖子加载错误
-const postsError = ref<string | null>(null)
 // 用户加载错误
 const usersError = ref<string | null>(null)
-
-// ========== 分页 ==========
-
-// 当前页码
-const currentPage = ref(1)
-// 是否还有更多帖子
-const hasMorePosts = ref(false)
-// 是否正在加载更多
-const isLoadingMore = ref(false)
 
 // ========== 计算属性 ==========
 
@@ -43,6 +32,16 @@ const isLoadingMore = ref(false)
 const currentUser = computed(() => authStore.currentUser)
 // 认证加载状态
 const isAuthLoading = computed(() => authStore.isLoading && !authStore.isInitialized)
+// 帖子列表
+const posts = computed(() => postsStore.posts)
+// 帖子加载状态
+const isLoadingPosts = computed(() => postsStore.isLoading)
+// 加载更多状态
+const isLoadingMore = computed(() => postsStore.isLoadingMore)
+// 是否有更多帖子
+const hasMorePosts = computed(() => postsStore.hasMore)
+// 帖子错误
+const postsError = computed(() => postsStore.error)
 // 整体加载状态
 const isLoading = computed(() => isLoadingPosts.value || isLoadingUsers.value)
 // 是否有错误
@@ -60,8 +59,7 @@ async function fetchUsers() {
   try {
     allUsers.value = await usersApi.list()
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('获取用户列表失败:', error)
+    globalThis.console.error('获取用户列表失败:', error)
     usersError.value = error instanceof Error ? error.message : '加载用户失败'
   } finally {
     isLoadingUsers.value = false
@@ -69,57 +67,21 @@ async function fetchUsers() {
 }
 
 /**
- * 获取帖子列表
- * @param page - 页码
- * @param append - 是否追加到现有列表
- */
-async function fetchPosts(page: number = 1, append: boolean = false) {
-  if (page === 1) {
-    isLoadingPosts.value = true
-  } else {
-    isLoadingMore.value = true
-  }
-  postsError.value = null
-
-  try {
-    const response = await postsApi.list({ page, limit: 20 })
-
-    if (append) {
-      posts.value = [...posts.value, ...response.items]
-    } else {
-      posts.value = response.items
-    }
-
-    currentPage.value = response.page
-    hasMorePosts.value = response.has_more
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('获取帖子列表失败:', error)
-    postsError.value = error instanceof Error ? error.message : '加载帖子失败'
-  } finally {
-    isLoadingPosts.value = false
-    isLoadingMore.value = false
-  }
-}
-
-/**
  * 加载更多帖子
  */
 async function loadMorePosts() {
-  if (isLoadingMore.value || !hasMorePosts.value) return
-  await fetchPosts(currentPage.value + 1, true)
+  await postsStore.loadMore()
 }
 
 /**
  * 刷新所有数据
  */
 async function refreshData() {
-  currentPage.value = 1
-  await Promise.all([fetchPosts(1), fetchUsers()])
+  await Promise.all([postsStore.refresh(), fetchUsers()])
 }
 
 /**
- * 处理帖子点赞切换
+ * 处理帖子点赞切换（乐观更新）
  * @param postId - 帖子 ID
  */
 async function handleLikeToggle(postId: string) {
@@ -129,17 +91,11 @@ async function handleLikeToggle(postId: string) {
   }
 
   try {
-    const result = await postsApi.toggleLike(postId)
-
-    // 更新本地帖子状态
-    const postIndex = posts.value.findIndex(p => p.id === postId)
-    const post = posts.value[postIndex]
-    if (postIndex !== -1 && post) {
-      post.likes = result.likes
-    }
+    // 使用 store 的乐观更新方法
+    await postsStore.toggleLike(postId, authStore.userId)
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('点赞切换失败:', error)
+    // 错误已在 store 中处理并回滚
+    globalThis.console.error('点赞切换失败:', error)
   }
 }
 
@@ -151,9 +107,7 @@ async function handleDelete(postId: string) {
   if (!authStore.isLoggedIn) return
 
   try {
-    await postsApi.delete(postId)
-    // 从列表中移除
-    posts.value = posts.value.filter(p => p.id !== postId)
+    await postsStore.deletePost(postId)
     // 更新用户帖子数
     if (authStore.currentUser) {
       authStore.updateUserLocally({
@@ -161,8 +115,7 @@ async function handleDelete(postId: string) {
       })
     }
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('删除帖子失败:', error)
+    globalThis.console.error('删除帖子失败:', error)
   }
 }
 
@@ -175,7 +128,14 @@ onMounted(async () => {
   }
 
   // 并行获取数据
-  await Promise.all([fetchPosts(), fetchUsers()])
+  // 如果缓存有效，则跳过帖子加载
+  const fetchPromises: Promise<void>[] = [fetchUsers()]
+
+  if (!postsStore.isCacheValid || postsStore.posts.length === 0) {
+    fetchPromises.push(postsStore.fetchPosts())
+  }
+
+  await Promise.all(fetchPromises)
 })
 </script>
 
@@ -313,5 +273,8 @@ onMounted(async () => {
         <p class="text-gray-400 dark:text-gray-500 text-sm">已经看完所有动态了！</p>
       </div>
     </div>
+
+    <!-- 返回顶部按钮 -->
+    <ScrollToTop :threshold="400" position="right" />
   </MainLayout>
 </template>

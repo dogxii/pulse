@@ -1,21 +1,26 @@
 <script setup lang="ts">
 // 帖子详情视图
 // 显示单个帖子的完整内容、评论和互动操作
+// 支持缓存、乐观更新和图片灯箱
 
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Loader2, AlertCircle, Heart, MessageCircle, Send, Edit3 } from 'lucide-vue-next'
 import { formatDistanceToNow } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useAuthStore } from '../stores/auth'
+import { usePostsStore } from '../stores/posts'
 import { posts as postsApi, comments as commentsApi } from '../services/api'
 import MarkdownRenderer from '../components/MarkdownRenderer.vue'
+import ImageLightbox from '../components/ImageLightbox.vue'
+import ScrollToTop from '../components/ScrollToTop.vue'
 import type { Post, Comment, User } from '../types'
 
 // ========== Router & Store ==========
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const postsStore = usePostsStore()
 
 // ========== 状态 ==========
 
@@ -35,6 +40,12 @@ const newComment = ref('')
 const isSubmittingComment = ref(false)
 // 评论错误
 const commentError = ref<string | null>(null)
+// 点赞动画状态
+const isLikeAnimating = ref(false)
+
+// ========== 灯箱状态 ==========
+const lightboxVisible = ref(false)
+const lightboxIndex = ref(0)
 
 // ========== 计算属性 ==========
 
@@ -83,19 +94,45 @@ const commentsCount = computed(() => comments.value.length)
 
 /**
  * 获取帖子详情
+ * 优先使用缓存，再从服务器获取
  */
 async function fetchPost() {
   isLoading.value = true
   error.value = null
 
   try {
-    post.value = await postsApi.get(postId.value)
+    // 优先从缓存获取
+    const cached = postsStore.getFromCache(postId.value)
+    if (cached) {
+      post.value = cached
+      isLoading.value = false
+      // 后台刷新数据
+      refreshPostInBackground()
+    } else {
+      // 从服务器获取
+      post.value = await postsApi.get(postId.value)
+      // 存入缓存
+      postsStore.setCachedPost(post.value)
+      isLoading.value = false
+    }
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('获取帖子失败:', e)
+    globalThis.console.error('获取帖子失败:', e)
     error.value = e instanceof Error ? e.message : '加载帖子失败'
-  } finally {
     isLoading.value = false
+  }
+}
+
+/**
+ * 后台刷新帖子数据（不影响 UI）
+ */
+async function refreshPostInBackground() {
+  try {
+    const freshPost = await postsApi.get(postId.value)
+    post.value = freshPost
+    postsStore.setCachedPost(freshPost)
+  } catch (e) {
+    // 静默失败，用户已经看到缓存数据
+    globalThis.console.warn('后台刷新帖子失败:', e)
   }
 }
 
@@ -108,15 +145,14 @@ async function fetchComments() {
   try {
     comments.value = await commentsApi.list(postId.value)
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('获取评论失败:', e)
+    globalThis.console.error('获取评论失败:', e)
   } finally {
     isLoadingComments.value = false
   }
 }
 
 /**
- * 切换点赞状态
+ * 切换点赞状态（带乐观更新）
  */
 async function handleLikeToggle() {
   if (!authStore.isLoggedIn || !post.value) {
@@ -124,12 +160,34 @@ async function handleLikeToggle() {
     return
   }
 
+  // 触发动画
+  isLikeAnimating.value = true
+  globalThis.setTimeout(() => {
+    isLikeAnimating.value = false
+  }, 300)
+
+  // 保存原始状态用于回滚
+  const originalLikes = [...post.value.likes]
+  const userId = authStore.userId!
+  const wasLiked = post.value.likes.includes(userId)
+
+  // 乐观更新
+  if (wasLiked) {
+    post.value.likes = post.value.likes.filter(id => id !== userId)
+  } else {
+    post.value.likes = [...post.value.likes, userId]
+  }
+
   try {
     const result = await postsApi.toggleLike(post.value.id)
+    // 用服务器返回的实际数据更新
     post.value.likes = result.likes
+    // 同步更新 store 缓存
+    postsStore.updatePostLikes(post.value.id, result.likes)
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('点赞切换失败:', e)
+    // 回滚
+    globalThis.console.error('点赞切换失败:', e)
+    post.value.likes = originalLikes
   }
 }
 
@@ -163,12 +221,13 @@ async function handleCommentSubmit() {
     // 更新帖子评论数
     if (post.value) {
       post.value.comments_count = commentsCount.value
+      // 同步更新 store
+      postsStore.updateCommentsCount(post.value.id, commentsCount.value)
     }
     // 清空输入框
     newComment.value = ''
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('发送评论失败:', e)
+    globalThis.console.error('发送评论失败:', e)
     commentError.value = e instanceof Error ? e.message : '发送评论失败'
   } finally {
     isSubmittingComment.value = false
@@ -188,10 +247,11 @@ async function handleDeleteComment(commentId: string) {
     // 更新帖子评论数
     if (post.value) {
       post.value.comments_count = commentsCount.value
+      // 同步更新 store
+      postsStore.updateCommentsCount(post.value.id, commentsCount.value)
     }
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('删除评论失败:', e)
+    globalThis.console.error('删除评论失败:', e)
   }
 }
 
@@ -233,10 +293,32 @@ function navigateToProfile(user?: User | null) {
  * 滚动到评论区
  */
 function scrollToComments() {
-  const commentsSection = document.getElementById('comments-section')
+  const commentsSection = globalThis.document.getElementById('comments-section')
   if (commentsSection) {
     commentsSection.scrollIntoView({ behavior: 'smooth' })
   }
+}
+
+/**
+ * 打开图片灯箱
+ */
+function openLightbox(index: number) {
+  lightboxIndex.value = index
+  lightboxVisible.value = true
+}
+
+/**
+ * 关闭灯箱
+ */
+function closeLightbox() {
+  lightboxVisible.value = false
+}
+
+/**
+ * 切换灯箱图片
+ */
+function changeLightboxIndex(index: number) {
+  lightboxIndex.value = index
 }
 
 // ========== 生命周期 ==========
@@ -246,9 +328,24 @@ onMounted(async () => {
   if (!authStore.isInitialized) {
     await authStore.initialize()
   }
-  // 并行获取帖子和评论
-  await Promise.all([fetchPost(), fetchComments()])
+  // 先获取帖子（可能从缓存），然后异步加载评论
+  await fetchPost()
+  // 异步加载评论，不阻塞页面显示
+  fetchComments()
 })
+
+// 监听路由参数变化（如果用户在帖子详情页之间导航）
+watch(
+  () => route.params.id,
+  async newId => {
+    if (newId && newId !== post.value?.id) {
+      post.value = null
+      comments.value = []
+      await fetchPost()
+      fetchComments()
+    }
+  }
+)
 </script>
 
 <template>
@@ -315,6 +412,7 @@ onMounted(async () => {
                 "
                 :alt="post.user?.username"
                 class="w-full h-full object-cover"
+                loading="lazy"
               />
             </div>
             <div class="flex flex-col">
@@ -346,7 +444,9 @@ onMounted(async () => {
                 :key="index"
                 :src="img"
                 alt="帖子图片"
-                class="rounded-2xl w-auto h-auto object-cover max-h-125 bg-gray-50 dark:bg-gray-800"
+                class="rounded-2xl w-auto h-auto object-cover max-h-125 bg-gray-50 dark:bg-gray-800 cursor-zoom-in hover:opacity-90 transition-opacity"
+                loading="lazy"
+                @click="openLightbox(index)"
               />
             </div>
           </div>
@@ -365,8 +465,11 @@ onMounted(async () => {
             >
               <Heart
                 :size="22"
-                :class="{ 'fill-current': isLiked }"
-                class="group-hover:scale-110 transition-transform"
+                :class="[
+                  { 'fill-current': isLiked },
+                  'group-hover:scale-110 transition-transform',
+                  isLikeAnimating ? 'animate-like-pop' : '',
+                ]"
               />
               <span class="font-medium">{{ post.likes.length }}</span>
             </button>
@@ -415,6 +518,7 @@ onMounted(async () => {
                   "
                   :alt="authStore.currentUser?.username"
                   class="w-full h-full object-cover"
+                  loading="lazy"
                 />
               </div>
               <div class="flex-1 flex gap-2">
@@ -474,6 +578,7 @@ onMounted(async () => {
                   "
                   :alt="comment.user?.username"
                   class="w-full h-full object-cover"
+                  loading="lazy"
                 />
               </div>
 
@@ -516,5 +621,37 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <!-- 图片灯箱 -->
+    <ImageLightbox
+      v-if="post?.images && post.images.length > 0"
+      :images="post.images"
+      :current-index="lightboxIndex"
+      :visible="lightboxVisible"
+      @close="closeLightbox"
+      @change="changeLightboxIndex"
+    />
+
+    <!-- 返回顶部按钮 -->
+    <ScrollToTop :threshold="300" position="right" />
   </div>
 </template>
+
+<style scoped>
+/* 点赞弹跳动画 */
+@keyframes like-pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-like-pop {
+  animation: like-pop 0.3s ease-out;
+}
+</style>

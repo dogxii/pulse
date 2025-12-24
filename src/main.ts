@@ -4,9 +4,20 @@ import "./style.css";
 import App from "./App.vue";
 import router from "./router";
 
-const app = createApp(App);
+// 初始化 Mock 系统（仅在开发模式或启用 mock 时）
+async function initApp() {
+	// 动态导入 mock 模块，避免在生产环境中打包
+	if (import.meta.env.DEV || import.meta.env.VITE_MOCK === "true") {
+		const { initMock } = await import("./mocks");
+		initMock();
+	}
 
-app.use(createPinia());
-app.use(router);
+	const app = createApp(App);
 
-app.mount("#app");
+	app.use(createPinia());
+	app.use(router);
+
+	app.mount("#app");
+}
+
+initApp();

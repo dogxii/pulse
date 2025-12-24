@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Image, X, Loader2, AlertCircle } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
+import { usePostsStore } from '../stores/posts'
 import { posts as postsApi, uploads } from '../services/api'
 import MarkdownEditor from '../components/MarkdownEditor.vue'
 import type { Post } from '../types'
@@ -10,6 +11,7 @@ import type { Post } from '../types'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const postsStore = usePostsStore()
 
 // State
 const post = ref<Post | null>(null)
@@ -47,13 +49,19 @@ const hasChanges = computed(() => {
   )
 })
 
-// Fetch the existing post
+// Fetch the existing post (try cache first)
 async function fetchPost() {
   isLoading.value = true
   loadError.value = null
 
   try {
-    const fetchedPost = await postsApi.get(postId.value)
+    // Try to get from cache first for instant display
+    let fetchedPost = postsStore.getFromCache(postId.value)
+
+    if (!fetchedPost) {
+      fetchedPost = await postsApi.get(postId.value)
+      postsStore.setCachedPost(fetchedPost)
+    }
 
     // Check if current user is the author
     if (fetchedPost.user_id !== authStore.userId) {
@@ -65,8 +73,7 @@ async function fetchPost() {
     content.value = fetchedPost.content
     images.value = fetchedPost.images ? [...fetchedPost.images] : []
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('Error fetching post:', e)
+    globalThis.console.error('Error fetching post:', e)
     loadError.value = e instanceof Error ? e.message : '加载帖子失败'
   } finally {
     isLoading.value = false
@@ -119,7 +126,7 @@ async function handleImageUpload(event: globalThis.Event) {
 }
 
 // Handle drag and drop
-function handleDragEnter(e: DragEvent) {
+function handleDragEnter(e: globalThis.DragEvent) {
   e.preventDefault()
   e.stopPropagation()
   if (canUploadMore.value && !isUploading.value) {
@@ -127,23 +134,23 @@ function handleDragEnter(e: DragEvent) {
   }
 }
 
-function handleDragLeave(e: DragEvent) {
+function handleDragLeave(e: globalThis.DragEvent) {
   e.preventDefault()
   e.stopPropagation()
   // Only set to false if we're leaving the drop zone entirely
-  const relatedTarget = e.relatedTarget as Node | null
-  const currentTarget = e.currentTarget as Node
+  const relatedTarget = e.relatedTarget as globalThis.Node | null
+  const currentTarget = e.currentTarget as globalThis.Node
   if (!currentTarget.contains(relatedTarget)) {
     isDragging.value = false
   }
 }
 
-function handleDragOver(e: DragEvent) {
+function handleDragOver(e: globalThis.DragEvent) {
   e.preventDefault()
   e.stopPropagation()
 }
 
-async function handleDrop(e: DragEvent) {
+async function handleDrop(e: globalThis.DragEvent) {
   e.preventDefault()
   e.stopPropagation()
   isDragging.value = false
@@ -179,9 +186,12 @@ async function handleSubmit() {
   error.value = null
 
   try {
-    await postsApi.update(post.value.id, {
+    const updatedPost = await postsApi.update(post.value.id, {
       content: content.value.trim(),
     })
+
+    // Update store cache with the updated post
+    postsStore.updatePost(updatedPost)
 
     // Navigate back to the post detail
     router.push(`/post/${post.value.id}`)

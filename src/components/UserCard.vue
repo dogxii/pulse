@@ -107,7 +107,7 @@ const displayUser = computed(() => {
   if (props.user) return props.user
   return {
     username: 'Guest',
-    avatar_url: './guest.svg',
+    avatar_url: '/guest.svg',
     bio: '登录以分享您的 Pulse (脉冲)',
     post_count: 0,
     is_admin: false,

@@ -77,7 +77,7 @@ const renderedContent = computed(() => {
   // 图片（行内图片，非帖子图片数组）- 必须在链接之前处理
   html = html.replace(
     /!\[([^\]]*)\]\(([^)]+)\)/g,
-    '<img src="$2" alt="$1" class="rounded-xl max-w-full my-2 inline-block" loading="lazy" />'
+    '<img src="$2" alt="$1" class="rounded-xl max-w-full my-2 inline-block cursor-zoom-in hover:opacity-90 transition-opacity" loading="lazy" />'
   )
 
   // 链接（新标签页打开）

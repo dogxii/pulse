@@ -1,13 +1,15 @@
 <script setup lang="ts">
 // 帖子卡片组件
 // 显示单个帖子的内容、图片、点赞和评论操作
+// 支持乐观更新和图片灯箱
 
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Heart, MessageCircle, Trash2, Edit3 } from 'lucide-vue-next'
 import { formatDistanceToNow } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import MarkdownRenderer from './MarkdownRenderer.vue'
+import ImageLightbox from './ImageLightbox.vue'
 import type { Post } from '../types'
 
 // ========== Props ==========
@@ -27,6 +29,13 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+
+// ========== 灯箱状态 ==========
+const lightboxVisible = ref(false)
+const lightboxIndex = ref(0)
+
+// ========== 点赞动画状态 ==========
+const isLikeAnimating = ref(false)
 
 // ========== 计算属性 ==========
 
@@ -70,9 +79,15 @@ const handleCommentClick = () => {
 }
 
 /**
- * 点击点赞
+ * 点击点赞（带动画效果）
  */
 const handleLikeClick = () => {
+  // 触发点赞动画
+  isLikeAnimating.value = true
+  globalThis.setTimeout(() => {
+    isLikeAnimating.value = false
+  }, 300)
+
   emit('like', props.post.id)
 }
 
@@ -100,6 +115,28 @@ const navigateToProfile = () => {
     router.push(`/u/${props.post.user.username}`)
   }
 }
+
+/**
+ * 点击图片，打开灯箱
+ */
+const openLightbox = (index: number) => {
+  lightboxIndex.value = index
+  lightboxVisible.value = true
+}
+
+/**
+ * 关闭灯箱
+ */
+const closeLightbox = () => {
+  lightboxVisible.value = false
+}
+
+/**
+ * 切换灯箱图片
+ */
+const changeLightboxIndex = (index: number) => {
+  lightboxIndex.value = index
+}
 </script>
 
 <template>
@@ -120,6 +157,7 @@ const navigateToProfile = () => {
             "
             :alt="post.user?.username"
             class="w-full h-full object-cover"
+            loading="lazy"
           />
         </div>
         <!-- 用户名和时间 -->
@@ -171,7 +209,9 @@ const navigateToProfile = () => {
           :key="index"
           :src="img"
           alt="帖子图片"
-          class="rounded-2xl w-auto h-auto object-cover max-h-96 bg-gray-50 dark:bg-gray-800"
+          class="rounded-2xl w-auto h-auto object-cover max-h-96 bg-gray-50 dark:bg-gray-800 cursor-zoom-in hover:opacity-90 transition-opacity"
+          loading="lazy"
+          @click="openLightbox(index)"
         />
       </div>
     </div>
@@ -190,8 +230,11 @@ const navigateToProfile = () => {
       >
         <Heart
           :size="20"
-          :class="{ 'fill-current': isLiked }"
-          class="group-hover:scale-110 transition-transform"
+          :class="[
+            { 'fill-current': isLiked },
+            'group-hover:scale-110 transition-transform',
+            isLikeAnimating ? 'animate-like-pop' : '',
+          ]"
         />
         <span class="text-sm font-medium">{{ post.likes.length }}</span>
       </button>
@@ -205,5 +248,34 @@ const navigateToProfile = () => {
         <span class="text-sm font-medium">{{ post.comments_count }}</span>
       </button>
     </div>
+
+    <!-- 图片灯箱 -->
+    <ImageLightbox
+      v-if="post.images && post.images.length > 0"
+      :images="post.images"
+      :current-index="lightboxIndex"
+      :visible="lightboxVisible"
+      @close="closeLightbox"
+      @change="changeLightboxIndex"
+    />
   </div>
 </template>
+
+<style scoped>
+/* 点赞弹跳动画 */
+@keyframes like-pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-like-pop {
+  animation: like-pop 0.3s ease-out;
+}
+</style>

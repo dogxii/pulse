@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // 用户主页视图
 // 显示用户资料、帖子列表，支持编辑个人简介
+// 使用 posts store 实现乐观更新
 
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -9,7 +10,9 @@ import { formatDistanceToNow, format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import MainLayout from '../layouts/MainLayout.vue'
 import PostCard from '../components/PostCard.vue'
+import ScrollToTop from '../components/ScrollToTop.vue'
 import { useAuthStore } from '../stores/auth'
+import { usePostsStore } from '../stores/posts'
 import { users as usersApi, posts as postsApi } from '../services/api'
 import type { User, Post } from '../types'
 
@@ -17,6 +20,7 @@ import type { User, Post } from '../types'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const postsStore = usePostsStore()
 
 // ========== 状态 ==========
 
@@ -88,8 +92,7 @@ async function fetchUser() {
   try {
     user.value = await usersApi.get(username.value)
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('获取用户信息失败:', e)
+    globalThis.console.error('获取用户信息失败:', e)
     error.value = e instanceof Error ? e.message : '用户不存在'
     user.value = null
   } finally {
@@ -112,8 +115,7 @@ async function fetchPosts() {
     // 筛选当前用户的帖子
     userPosts.value = response.items.filter(p => p.user_id === user.value?.id)
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('获取帖子失败:', e)
+    globalThis.console.error('获取帖子失败:', e)
   } finally {
     isLoadingPosts.value = false
   }
@@ -126,8 +128,7 @@ async function fetchAllUsers() {
   try {
     allUsers.value = await usersApi.list()
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('获取用户列表失败:', e)
+    globalThis.console.error('获取用户列表失败:', e)
   }
 }
 
@@ -164,39 +165,62 @@ async function saveBio() {
     authStore.updateUserLocally({ bio: updatedUser.bio })
     isEditing.value = false
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('保存个人简介失败:', e)
+    globalThis.console.error('保存个人简介失败:', e)
   } finally {
     isSaving.value = false
   }
 }
 
 /**
- * 处理帖子点赞
+ * 处理帖子点赞（乐观更新）
  */
 async function handleLikeToggle(postId: string) {
-  if (!authStore.isLoggedIn) {
+  if (!authStore.isLoggedIn || !authStore.userId) {
     router.push('/login')
     return
   }
 
+  const userId = authStore.userId
+
+  // 找到帖子
+  const postIndex = userPosts.value.findIndex(p => p.id === postId)
+  const post = userPosts.value[postIndex]
+  if (!post) return
+
+  // 保存原始状态用于回滚
+  const originalLikes = [...post.likes]
+  const wasLiked = post.likes.includes(userId)
+
+  // 乐观更新
+  if (wasLiked) {
+    post.likes = post.likes.filter(id => id !== userId)
+  } else {
+    post.likes = [...post.likes, userId]
+  }
+
+  // 同时更新所有帖子列表
+  const allPostIndex = allPosts.value.findIndex(p => p.id === postId)
+  const allPost = allPosts.value[allPostIndex]
+  if (allPost) {
+    allPost.likes = post.likes
+  }
+
   try {
     const result = await postsApi.toggleLike(postId)
-    // 更新用户帖子列表
-    const postIndex = userPosts.value.findIndex(p => p.id === postId)
-    const post = userPosts.value[postIndex]
-    if (postIndex !== -1 && post) {
-      post.likes = result.likes
-    }
-    // 同时更新所有帖子列表（用于热力图数据一致性）
-    const allPostIndex = allPosts.value.findIndex(p => p.id === postId)
-    const allPost = allPosts.value[allPostIndex]
-    if (allPostIndex !== -1 && allPost) {
+    // 用服务器返回的实际数据更新
+    post.likes = result.likes
+    if (allPost) {
       allPost.likes = result.likes
     }
+    // 同步更新 store 缓存
+    postsStore.updatePostLikes(postId, result.likes)
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('点赞切换失败:', e)
+    // 回滚
+    globalThis.console.error('点赞切换失败:', e)
+    post.likes = originalLikes
+    if (allPost) {
+      allPost.likes = originalLikes
+    }
   }
 }
 
@@ -210,6 +234,8 @@ async function handlePostDelete(postId: string) {
     userPosts.value = userPosts.value.filter(p => p.id !== postId)
     // 从所有帖子列表移除
     allPosts.value = allPosts.value.filter(p => p.id !== postId)
+    // 同步更新 store
+    postsStore.deletePost(postId).catch(() => {})
 
     // 更新帖子数
     if (user.value) {
@@ -222,8 +248,7 @@ async function handlePostDelete(postId: string) {
       })
     }
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('删除帖子失败:', e)
+    globalThis.console.error('删除帖子失败:', e)
   }
 }
 
@@ -301,6 +326,7 @@ onMounted(async () => {
               :src="user.avatar_url || `https://api.dicebear.com/9.x/micah/svg?seed=${user.id}`"
               :alt="user.username"
               class="w-full h-full object-cover"
+              loading="lazy"
             />
           </div>
 
@@ -450,5 +476,8 @@ onMounted(async () => {
         />
       </div>
     </div>
+
+    <!-- 返回顶部按钮 -->
+    <ScrollToTop :threshold="400" position="right" />
   </MainLayout>
 </template>

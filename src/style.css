@@ -56,3 +56,17 @@ body {
 ::selection {
   @apply bg-emerald-100 text-emerald-900 dark:bg-emerald-900/50 dark:text-emerald-100;
 }
+
+/* 慢速旋转动画（用于 PWA 更新图标） */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}

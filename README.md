@@ -255,11 +255,52 @@ uploads/
 
 ## 常用命令
 
-| 命令          | 描述           |
-| ------------- | -------------- |
-| `bun dev`     | 启动开发服务器 |
-| `bun build`   | 构建生产版本   |
-| `bun preview` | 预览生产构建   |
+| 命令           | 描述                     |
+| -------------- | ------------------------ |
+| `bun dev`      | 启动开发服务器           |
+| `bun dev:mock` | 启动 Mock 模式开发服务器 |
+| `bun build`    | 构建生产版本             |
+| `bun preview`  | 预览生产构建             |
+
+## Mock 开发模式
+
+Pulse 提供了完整的 Mock 系统，用于前端 UI 开发和测试，无需连接真实后端。
+
+### 启动 Mock 模式
+
+```bash
+# 使用 Mock 数据启动开发服务器
+bun dev:mock
+
+# 或通过 URL 参数启用
+# http://localhost:5173/?mock=true
+```
+
+### Mock 功能特性
+
+- **模拟数据** - 6 个用户、8 篇帖子、多条评论
+- **完整 API 拦截** - 所有 API 请求返回模拟数据
+- **数据可修改** - 支持创建、编辑、删除、点赞等操作
+- **网络延迟模拟** - 模拟真实网络环境
+- **开发者工具** - 浏览器控制台可访问 Mock 控制
+
+### 开发者工具
+
+启用 Mock 后，在浏览器控制台可使用：
+
+```javascript
+// 查看 Mock 状态
+window.__pulse_mock__.isEnabled()
+
+// 重置数据到初始状态
+window.__pulse_mock__.reset()
+
+// 查看模拟数据
+window.__pulse_mock__.data.users
+window.__pulse_mock__.data.posts
+```
+
+详细文档请查看 [src/mocks/README.md](./src/mocks/README.md)
 
 ## 许可证
 
