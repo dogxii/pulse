@@ -59,14 +59,14 @@ const renderedContent = computed(() => {
     '<del class="line-through text-gray-400 dark:text-gray-500 decoration-gray-400/60">$1</del>'
   )
 
-  // 粗体
+  // 粗体 - 使用 font-semibold 避免过度加粗
   html = html.replace(
     /\*\*(.+?)\*\*/g,
-    '<strong class="font-bold text-gray-900 dark:text-gray-100">$1</strong>'
+    '<strong class="font-semibold text-gray-900 dark:text-gray-100">$1</strong>'
   )
   html = html.replace(
     /__(.+?)__/g,
-    '<strong class="font-bold text-gray-900 dark:text-gray-100">$1</strong>'
+    '<strong class="font-semibold text-gray-900 dark:text-gray-100">$1</strong>'
   )
 
   // 斜体

@@ -2,6 +2,7 @@
 // 主布局组件
 // 包含左侧用户卡片、中间主内容区、右侧社区墙
 // 包含 PWA 更新通知
+// PWA Safe Area 适配（iOS notch / 状态栏）
 
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -191,8 +192,13 @@ const todayPostCount = computed(() => {
 <template>
   <div
     class="min-h-screen bg-gray-50/50 dark:bg-[#0f0f0f] text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300"
+    style="
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+    "
   >
-    <!-- PWA 更新通知 -->
+    <!-- PWA 更新通知 - 适配 safe area -->
     <Transition
       enter-active-class="transition duration-300 ease-out"
       enter-from-class="opacity-0 -translate-y-full"
@@ -204,6 +210,7 @@ const todayPostCount = computed(() => {
       <div
         v-if="showUpdateBanner"
         class="fixed top-0 left-0 right-0 z-50 bg-emerald-500 dark:bg-emerald-600 text-white px-4 py-3 shadow-lg"
+        style="padding-top: calc(env(safe-area-inset-top, 0px) + 12px)"
       >
         <div class="max-w-7xl mx-auto flex items-center justify-between">
           <div class="flex items-center gap-3">
@@ -249,7 +256,7 @@ const todayPostCount = computed(() => {
 
         <!-- 主内容区（信息流） -->
         <main class="lg:col-span-6 min-h-[80vh]">
-          <!-- 移动端顶栏 -->
+          <!-- 移动端顶栏 - 适配 PWA safe area -->
           <div
             class="lg:hidden mb-6 flex items-center justify-between bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-sm dark:shadow-none dark:border dark:border-gray-800"
           >

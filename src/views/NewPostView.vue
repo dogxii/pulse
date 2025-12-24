@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Image, X, Loader2 } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
@@ -22,6 +22,22 @@ const isDragging = ref(false)
 // Character limit
 const MAX_CONTENT_LENGTH = 5000
 const MAX_IMAGES = 4
+
+// 移动端检测
+const isMobile = ref(false)
+
+function checkMobile() {
+  isMobile.value = globalThis.window.innerWidth < 768
+}
+
+onMounted(() => {
+  checkMobile()
+  globalThis.window.addEventListener('resize', checkMobile, { passive: true })
+})
+
+onUnmounted(() => {
+  globalThis.window.removeEventListener('resize', checkMobile)
+})
 
 // Computed
 const characterCount = computed(() => content.value.length)
@@ -173,22 +189,28 @@ function goBack() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50/50 dark:bg-[#0f0f0f] transition-colors duration-300">
-    <div class="max-w-2xl mx-auto px-4 py-8">
-      <!-- Header -->
-      <div class="flex items-center gap-4 mb-8">
+  <div
+    class="min-h-screen bg-gray-50/50 dark:bg-[#0f0f0f] transition-colors duration-300"
+    style="
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    "
+  >
+    <div class="max-w-2xl mx-auto px-4 py-6 md:py-8">
+      <!-- Header - 移动端更紧凑 -->
+      <div class="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
         <button
-          class="p-2 rounded-xl hover:bg-white dark:hover:bg-gray-800 transition-colors cursor-pointer"
+          class="p-2.5 md:p-2 rounded-xl hover:bg-white dark:hover:bg-gray-800 transition-colors cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
           @click="goBack"
         >
-          <ArrowLeft :size="20" class="text-gray-600 dark:text-gray-400" />
+          <ArrowLeft :size="22" class="text-gray-600 dark:text-gray-400" />
         </button>
-        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">新建帖子</h1>
+        <h1 class="text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100">新建帖子</h1>
       </div>
 
       <!-- Form Card with Drop Zone -->
       <div
-        class="bg-white dark:bg-gray-900 rounded-3xl p-6 md:p-8 shadow-sm dark:shadow-gray-950/50 relative"
+        class="bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl p-4 md:p-6 lg:p-8 shadow-sm dark:shadow-gray-950/50 relative"
         :class="{ 'ring-2 ring-blue-400 ring-offset-2 dark:ring-offset-gray-900': isDragging }"
         @dragenter="handleDragEnter"
         @dragleave="handleDragLeave"
@@ -209,8 +231,10 @@ function goBack() {
           </div>
         </div>
         <!-- User Info -->
-        <div class="flex items-center gap-3 mb-6">
-          <div class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+        <div class="flex items-center gap-3 mb-4 md:mb-6">
+          <div
+            class="w-10 h-10 md:w-11 md:h-11 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0"
+          >
             <img
               :src="
                 authStore.currentUser?.avatar_url ||
@@ -231,24 +255,24 @@ function goBack() {
         <!-- Error Message -->
         <div
           v-if="error"
-          class="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 rounded-xl text-red-600 dark:text-red-400 text-sm"
+          class="mb-4 md:mb-6 p-3 md:p-4 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 rounded-xl text-red-600 dark:text-red-400 text-sm"
         >
           {{ error }}
         </div>
 
         <!-- Markdown Editor -->
-        <div class="mb-6">
+        <div class="mb-4 md:mb-6">
           <MarkdownEditor
             v-model="content"
             placeholder="记录下来你的想法..."
             :max-length="MAX_CONTENT_LENGTH"
-            :min-rows="6"
+            :min-rows="isMobile ? 8 : 6"
             :disabled="isSubmitting"
           />
         </div>
 
         <!-- Image Previews -->
-        <div v-if="images.length > 0" class="mb-6">
+        <div v-if="images.length > 0" class="mb-4 md:mb-6">
           <div class="grid gap-2" :class="images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'">
             <div v-for="(img, index) in images" :key="index" class="relative group">
               <img
@@ -266,20 +290,20 @@ function goBack() {
           </div>
         </div>
 
-        <!-- Actions -->
+        <!-- Actions - 移动端更大的触控目标 -->
         <div
-          class="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800"
+          class="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800 gap-3"
         >
           <!-- Upload Image Button -->
           <div class="flex items-center gap-2">
             <label
               v-if="canUploadMore"
-              class="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors cursor-pointer"
+              class="flex items-center gap-2 px-3 md:px-4 py-2.5 md:py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors cursor-pointer min-h-[44px]"
               :class="{ 'opacity-50 pointer-events-none': isUploading }"
             >
-              <Loader2 v-if="isUploading" :size="18" class="animate-spin" />
-              <Image v-else :size="18" />
-              <span class="text-sm font-medium">
+              <Loader2 v-if="isUploading" :size="20" class="animate-spin" />
+              <Image v-else :size="20" />
+              <span class="text-sm font-medium hidden sm:inline">
                 {{ isUploading ? '上传中...' : '添加图片' }}
               </span>
               <input
@@ -291,13 +315,13 @@ function goBack() {
               />
             </label>
             <span v-if="images.length > 0" class="text-xs text-gray-400 dark:text-gray-500">
-              {{ images.length }}/{{ MAX_IMAGES }} 图片
+              {{ images.length }}/{{ MAX_IMAGES }}
             </span>
           </div>
 
-          <!-- Submit Button -->
+          <!-- Submit Button - 移动端更大 -->
           <button
-            class="px-6 py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-medium text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            class="px-5 md:px-6 py-3 md:py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-medium text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-h-[44px]"
             :disabled="!canSubmit"
             @click="handleSubmit"
           >
@@ -307,10 +331,14 @@ function goBack() {
         </div>
       </div>
 
-      <!-- Markdown Tips -->
-      <div class="mt-6 p-4 bg-white dark:bg-gray-900 rounded-2xl shadow-sm dark:shadow-gray-950/50">
-        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Markdown Tips</h3>
-        <div class="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400">
+      <!-- Markdown Tips - 移动端可折叠或更紧凑 -->
+      <div
+        class="mt-4 md:mt-6 p-3 md:p-4 bg-white dark:bg-gray-900 rounded-2xl shadow-sm dark:shadow-gray-950/50"
+      >
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 md:mb-3">
+          Markdown Tips
+        </h3>
+        <div class="grid grid-cols-2 gap-1.5 md:gap-2 text-xs text-gray-500 dark:text-gray-400">
           <div>
             <code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">**粗体**</code> →
             <strong>粗体</strong>

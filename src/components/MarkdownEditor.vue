@@ -1,9 +1,25 @@
 <script setup lang="ts">
 // Markdown 编辑器组件
 // 支持工具栏格式化、实时预览、字符统计等功能
+// 优化移动端体验：更大触控目标、折叠工具栏、自适应布局
 
-import { ref, computed } from 'vue'
-import { Eye, Edit3, Bold, Italic, Link, Image, List, Code, Quote, Heading } from 'lucide-vue-next'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import {
+  Eye,
+  Edit3,
+  Bold,
+  Italic,
+  Link,
+  Image,
+  List,
+  Code,
+  Quote,
+  Heading,
+  ChevronDown,
+  ChevronUp,
+  Maximize2,
+  Minimize2,
+} from 'lucide-vue-next'
 
 // ========== Props ==========
 const props = defineProps<{
@@ -28,6 +44,11 @@ const emit = defineEmits<{
 
 // 编辑模式：'write' 写作 | 'preview' 预览
 const mode = ref<'write' | 'preview'>('write')
+
+// 移动端状态
+const isMobile = ref(false)
+const isToolbarExpanded = ref(false)
+const isFullscreen = ref(false)
 
 // ========== 计算属性 ==========
 
@@ -67,26 +88,26 @@ const renderedContent = computed(() => {
   // 先处理代码块（防止内部内容被其他规则处理）
   html = html.replace(
     /```(\w*)\n([\s\S]*?)```/g,
-    '<pre class="bg-gray-100 rounded-lg p-4 my-2 overflow-x-auto"><code class="text-sm font-mono text-gray-800">$2</code></pre>'
+    '<pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 my-2 overflow-x-auto"><code class="text-sm font-mono text-gray-800 dark:text-gray-200">$2</code></pre>'
   )
 
   // 标题（使用特殊类名便于样式控制）
   html = html.replace(
     /^### (.+)$/gm,
-    '<h3 class="md-heading text-lg font-bold text-gray-900">$1</h3>'
+    '<h3 class="md-heading text-lg font-bold text-gray-900 dark:text-gray-100">$1</h3>'
   )
   html = html.replace(
     /^## (.+)$/gm,
-    '<h2 class="md-heading text-xl font-bold text-gray-900">$1</h2>'
+    '<h2 class="md-heading text-xl font-bold text-gray-900 dark:text-gray-100">$1</h2>'
   )
   html = html.replace(
     /^# (.+)$/gm,
-    '<h1 class="md-heading text-2xl font-bold text-gray-900">$1</h1>'
+    '<h1 class="md-heading text-2xl font-bold text-gray-900 dark:text-gray-100">$1</h1>'
   )
 
   // 粗体
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold">$1</strong>')
-  html = html.replace(/__(.+?)__/g, '<strong class="font-bold">$1</strong>')
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>')
+  html = html.replace(/__(.+?)__/g, '<strong class="font-semibold">$1</strong>')
 
   // 斜体
   html = html.replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
@@ -95,13 +116,13 @@ const renderedContent = computed(() => {
   // 行内代码
   html = html.replace(
     /`([^`]+)`/g,
-    '<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-gray-800">$1</code>'
+    '<code class="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono text-gray-800 dark:text-gray-200">$1</code>'
   )
 
   // 引用
   html = html.replace(
-    /^> (.+)$/gm,
-    '<blockquote class="border-l-4 border-gray-300 pl-4 my-2 text-gray-600 italic">$1</blockquote>'
+    /^&gt; (.+)$/gm,
+    '<blockquote class="border-l-4 border-gray-300 dark:border-gray-600 pl-4 my-2 text-gray-600 dark:text-gray-400 italic">$1</blockquote>'
   )
 
   // 无序列表
@@ -114,7 +135,7 @@ const renderedContent = computed(() => {
   // 链接
   html = html.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-emerald-600 hover:text-emerald-700 underline">$1</a>'
+    '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline">$1</a>'
   )
 
   // 图片
@@ -124,7 +145,7 @@ const renderedContent = computed(() => {
   )
 
   // 分割线
-  html = html.replace(/^---$/gm, '<hr class="my-4 border-gray-200" />')
+  html = html.replace(/^---$/gm, '<hr class="my-4 border-gray-200 dark:border-gray-700" />')
 
   // 处理换行 - 移除块级元素前后的换行
   html = html.replace(/\n(<h[1-3] class="md-heading)/g, '$1')
@@ -181,6 +202,31 @@ const textareaRef = ref<globalThis.HTMLTextAreaElement | null>(null)
 // ========== 方法 ==========
 
 /**
+ * 检测是否为移动端
+ */
+function checkMobile() {
+  isMobile.value = globalThis.window.innerWidth < 768
+}
+
+/**
+ * 切换工具栏展开状态（移动端）
+ */
+function toggleToolbar() {
+  isToolbarExpanded.value = !isToolbarExpanded.value
+}
+
+/**
+ * 切换全屏模式
+ */
+function toggleFullscreen() {
+  isFullscreen.value = !isFullscreen.value
+  if (isFullscreen.value) {
+    // 全屏时自动展开工具栏
+    isToolbarExpanded.value = true
+  }
+}
+
+/**
  * 在光标位置插入文本
  * @param before - 前缀文本
  * @param after - 后缀文本
@@ -205,6 +251,11 @@ function insertText(before: string, after: string = '', placeholder: string = ''
     textarea.focus()
     textarea.setSelectionRange(start + before.length, start + before.length + textToInsert.length)
   }, 0)
+
+  // 移动端插入后收起工具栏
+  if (isMobile.value && !isFullscreen.value) {
+    isToolbarExpanded.value = false
+  }
 }
 
 /**
@@ -262,135 +313,315 @@ function insertQuote() {
 function insertHeading() {
   insertText('\n## ', '', '标题')
 }
+
+// ========== 生命周期 ==========
+
+onMounted(() => {
+  checkMobile()
+  globalThis.window.addEventListener('resize', checkMobile, { passive: true })
+})
+
+onUnmounted(() => {
+  globalThis.window.removeEventListener('resize', checkMobile)
+})
 </script>
 
 <template>
   <div
-    class="markdown-editor rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-900"
+    :class="[
+      'markdown-editor rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-900 transition-all duration-300',
+      isFullscreen ? 'fixed inset-4 z-50 flex flex-col shadow-2xl' : 'relative',
+    ]"
   >
+    <!-- 全屏模式遮罩 -->
+    <div v-if="isFullscreen" class="fixed inset-0 bg-black/50 -z-10" @click="toggleFullscreen" />
+
     <!-- 工具栏 -->
     <div
-      class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
+      class="toolbar flex flex-col bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
     >
-      <!-- 格式化按钮 -->
-      <div class="flex items-center gap-1">
-        <!-- 标题 -->
-        <button
-          type="button"
-          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-          title="标题"
-          :disabled="mode === 'preview' || disabled"
-          @click="insertHeading"
-        >
-          <Heading :size="16" />
-        </button>
-        <!-- 粗体 -->
-        <button
-          type="button"
-          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-          title="粗体"
-          :disabled="mode === 'preview' || disabled"
-          @click="insertBold"
-        >
-          <Bold :size="16" />
-        </button>
-        <!-- 斜体 -->
-        <button
-          type="button"
-          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-          title="斜体"
-          :disabled="mode === 'preview' || disabled"
-          @click="insertItalic"
-        >
-          <Italic :size="16" />
-        </button>
-        <div class="w-px h-5 bg-gray-200 dark:bg-gray-600 mx-1" />
-        <!-- 链接 -->
-        <button
-          type="button"
-          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-          title="链接"
-          :disabled="mode === 'preview' || disabled"
-          @click="insertLink"
-        >
-          <Link :size="16" />
-        </button>
-        <!-- 图片 -->
-        <button
-          type="button"
-          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-          title="图片"
-          :disabled="mode === 'preview' || disabled"
-          @click="insertImage"
-        >
-          <Image :size="16" />
-        </button>
-        <div class="w-px h-5 bg-gray-200 dark:bg-gray-600 mx-1" />
-        <!-- 列表 -->
-        <button
-          type="button"
-          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-          title="列表"
-          :disabled="mode === 'preview' || disabled"
-          @click="insertList"
-        >
-          <List :size="16" />
-        </button>
-        <!-- 代码 -->
-        <button
-          type="button"
-          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-          title="代码"
-          :disabled="mode === 'preview' || disabled"
-          @click="insertCode"
-        >
-          <Code :size="16" />
-        </button>
-        <!-- 引用 -->
-        <button
-          type="button"
-          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-          title="引用"
-          :disabled="mode === 'preview' || disabled"
-          @click="insertQuote"
-        >
-          <Quote :size="16" />
-        </button>
+      <!-- 移动端：主工具栏（简化版） -->
+      <div class="flex items-center justify-between px-3 py-2 md:px-4">
+        <!-- 移动端：折叠按钮 + 常用按钮 -->
+        <div class="flex items-center gap-1">
+          <!-- 移动端折叠/展开按钮 -->
+          <button
+            v-if="isMobile"
+            type="button"
+            class="toolbar-btn p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+            title="展开/收起工具栏"
+            @click="toggleToolbar"
+          >
+            <ChevronDown v-if="!isToolbarExpanded" :size="18" class="transition-transform" />
+            <ChevronUp v-else :size="18" class="transition-transform" />
+          </button>
+
+          <!-- 桌面端：完整工具栏 -->
+          <template v-if="!isMobile">
+            <!-- 标题 -->
+            <button
+              type="button"
+              class="toolbar-btn p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="标题"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertHeading"
+            >
+              <Heading :size="18" />
+            </button>
+            <!-- 粗体 -->
+            <button
+              type="button"
+              class="toolbar-btn p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="粗体"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertBold"
+            >
+              <Bold :size="18" />
+            </button>
+            <!-- 斜体 -->
+            <button
+              type="button"
+              class="toolbar-btn p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="斜体"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertItalic"
+            >
+              <Italic :size="18" />
+            </button>
+            <div class="w-px h-6 bg-gray-200 dark:bg-gray-600 mx-1" />
+            <!-- 链接 -->
+            <button
+              type="button"
+              class="toolbar-btn p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="链接"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertLink"
+            >
+              <Link :size="18" />
+            </button>
+            <!-- 图片 -->
+            <button
+              type="button"
+              class="toolbar-btn p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="图片"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertImage"
+            >
+              <Image :size="18" />
+            </button>
+            <div class="w-px h-6 bg-gray-200 dark:bg-gray-600 mx-1" />
+            <!-- 列表 -->
+            <button
+              type="button"
+              class="toolbar-btn p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="列表"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertList"
+            >
+              <List :size="18" />
+            </button>
+            <!-- 代码 -->
+            <button
+              type="button"
+              class="toolbar-btn p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="代码"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertCode"
+            >
+              <Code :size="18" />
+            </button>
+            <!-- 引用 -->
+            <button
+              type="button"
+              class="toolbar-btn p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="引用"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertQuote"
+            >
+              <Quote :size="18" />
+            </button>
+          </template>
+
+          <!-- 移动端：常用快捷按钮（始终显示） -->
+          <template v-if="isMobile && !isToolbarExpanded">
+            <button
+              type="button"
+              class="toolbar-btn p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="粗体"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertBold"
+            >
+              <Bold :size="18" />
+            </button>
+            <button
+              type="button"
+              class="toolbar-btn p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="链接"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertLink"
+            >
+              <Link :size="18" />
+            </button>
+            <button
+              type="button"
+              class="toolbar-btn p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="图片"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertImage"
+            >
+              <Image :size="18" />
+            </button>
+          </template>
+        </div>
+
+        <!-- 右侧：模式切换 + 全屏按钮 -->
+        <div class="flex items-center gap-2">
+          <!-- 全屏按钮 -->
+          <button
+            type="button"
+            class="p-2 rounded-xl text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+            :title="isFullscreen ? '退出全屏' : '全屏编辑'"
+            @click="toggleFullscreen"
+          >
+            <Minimize2 v-if="isFullscreen" :size="16" />
+            <Maximize2 v-else :size="16" />
+          </button>
+
+          <!-- 模式切换 -->
+          <div class="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
+            <button
+              type="button"
+              class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+              :class="
+                mode === 'write'
+                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              "
+              @click="mode = 'write'"
+            >
+              <Edit3 :size="14" />
+              <span class="hidden sm:inline">编辑</span>
+            </button>
+            <button
+              type="button"
+              class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+              :class="
+                mode === 'preview'
+                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              "
+              @click="mode = 'preview'"
+            >
+              <Eye :size="14" />
+              <span class="hidden sm:inline">预览</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      <!-- 模式切换 -->
-      <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-        <button
-          type="button"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer"
-          :class="
-            mode === 'write'
-              ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-          "
-          @click="mode = 'write'"
+      <!-- 移动端：展开的完整工具栏 -->
+      <Transition
+        enter-active-class="transition-all duration-200 ease-out"
+        enter-from-class="opacity-0 max-h-0"
+        enter-to-class="opacity-100 max-h-20"
+        leave-active-class="transition-all duration-150 ease-in"
+        leave-from-class="opacity-100 max-h-20"
+        leave-to-class="opacity-0 max-h-0"
+      >
+        <div
+          v-if="isMobile && isToolbarExpanded"
+          class="overflow-hidden border-t border-gray-200 dark:border-gray-700"
         >
-          <Edit3 :size="14" />
-          编辑
-        </button>
-        <button
-          type="button"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer"
-          :class="
-            mode === 'preview'
-              ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-          "
-          @click="mode = 'preview'"
-        >
-          <Eye :size="14" />
-          预览
-        </button>
-      </div>
+          <div class="flex items-center gap-1 px-3 py-2 overflow-x-auto">
+            <!-- 标题 -->
+            <button
+              type="button"
+              class="toolbar-btn shrink-0 p-3 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="标题"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertHeading"
+            >
+              <Heading :size="20" />
+            </button>
+            <!-- 粗体 -->
+            <button
+              type="button"
+              class="toolbar-btn shrink-0 p-3 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="粗体"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertBold"
+            >
+              <Bold :size="20" />
+            </button>
+            <!-- 斜体 -->
+            <button
+              type="button"
+              class="toolbar-btn shrink-0 p-3 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="斜体"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertItalic"
+            >
+              <Italic :size="20" />
+            </button>
+            <div class="w-px h-8 bg-gray-200 dark:bg-gray-600 mx-1 shrink-0" />
+            <!-- 链接 -->
+            <button
+              type="button"
+              class="toolbar-btn shrink-0 p-3 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="链接"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertLink"
+            >
+              <Link :size="20" />
+            </button>
+            <!-- 图片 -->
+            <button
+              type="button"
+              class="toolbar-btn shrink-0 p-3 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="图片"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertImage"
+            >
+              <Image :size="20" />
+            </button>
+            <div class="w-px h-8 bg-gray-200 dark:bg-gray-600 mx-1 shrink-0" />
+            <!-- 列表 -->
+            <button
+              type="button"
+              class="toolbar-btn shrink-0 p-3 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="列表"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertList"
+            >
+              <List :size="20" />
+            </button>
+            <!-- 代码 -->
+            <button
+              type="button"
+              class="toolbar-btn shrink-0 p-3 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="代码"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertCode"
+            >
+              <Code :size="20" />
+            </button>
+            <!-- 引用 -->
+            <button
+              type="button"
+              class="toolbar-btn shrink-0 p-3 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="引用"
+              :disabled="mode === 'preview' || disabled"
+              @click="insertQuote"
+            >
+              <Quote :size="20" />
+            </button>
+          </div>
+        </div>
+      </Transition>
     </div>
 
     <!-- 编辑器 / 预览区 -->
-    <div class="min-h-50">
+    <div :class="['min-h-50', isFullscreen ? 'flex-1 overflow-hidden' : '']">
       <!-- 编辑模式 -->
       <textarea
         v-show="mode === 'write'"
@@ -399,28 +630,44 @@ function insertHeading() {
         :placeholder="placeholder || '写点什么吧... 支持 Markdown 语法！'"
         :rows="minRows || 8"
         :disabled="disabled"
-        class="w-full px-4 py-4 text-gray-800 dark:text-gray-200 bg-transparent placeholder-gray-400 dark:placeholder-gray-500 border-none focus:outline-none focus:ring-0 resize-none font-mono text-sm leading-relaxed"
+        :class="[
+          'w-full px-4 py-4 md:px-5 md:py-5',
+          'text-gray-800 dark:text-gray-200 bg-transparent',
+          'placeholder-gray-400 dark:placeholder-gray-500',
+          'border-none focus:outline-none focus:ring-0 resize-none',
+          'font-mono leading-relaxed',
+          // 移动端使用 16px 防止 iOS 自动缩放，桌面端使用 14px
+          'text-base md:text-sm',
+          // 全屏模式下填满高度
+          isFullscreen ? 'h-full' : '',
+        ]"
+        style="line-height: 1.8"
       />
 
       <!-- 预览模式 -->
       <!-- eslint-disable-next-line vue/no-v-html -->
       <div
         v-show="mode === 'preview'"
-        class="px-4 py-4 prose prose-gray dark:prose-invert max-w-none text-gray-800 dark:text-gray-200 leading-relaxed min-h-50"
+        :class="[
+          'preview px-4 py-4 md:px-5 md:py-5',
+          'prose prose-gray dark:prose-invert max-w-none',
+          'text-gray-800 dark:text-gray-200 leading-relaxed min-h-50',
+          isFullscreen ? 'h-full overflow-y-auto' : '',
+        ]"
         v-html="renderedContent"
       />
     </div>
 
     <!-- 底部信息栏 -->
     <div
-      class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700"
+      class="flex items-center justify-between px-4 py-2.5 md:py-2 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700"
     >
       <div class="flex items-center gap-2">
-        <span class="text-xs text-gray-400 dark:text-gray-500">支持 Markdown 语法</span>
+        <span class="text-xs text-gray-400 dark:text-gray-500"> 支持 Markdown </span>
       </div>
       <div
         v-if="maxLength"
-        class="text-xs"
+        class="text-xs font-medium"
         :class="isOverLimit ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'"
       >
         {{ characterCount }} / {{ maxLength }}
@@ -431,7 +678,12 @@ function insertHeading() {
 
 <style scoped>
 .markdown-editor textarea {
-  min-height: 200px;
+  min-height: 180px;
+}
+
+/* 全屏模式下的 textarea */
+.markdown-editor.fixed textarea {
+  min-height: 100%;
 }
 
 /* 预览区标题样式 - 固定间距 */
@@ -452,5 +704,36 @@ function insertHeading() {
 
 .markdown-editor :deep(p:last-child) {
   margin-bottom: 0;
+}
+
+/* 移动端触控优化 */
+@media (max-width: 768px) {
+  .toolbar-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .markdown-editor textarea {
+    /* 确保移动端有足够的输入空间 */
+    min-height: 200px;
+    /* 使用 16px 防止 iOS Safari 自动缩放 */
+    font-size: 16px !important;
+  }
+}
+
+/* 工具栏滚动（移动端） */
+@media (max-width: 768px) {
+  .toolbar > div:last-child {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .toolbar > div:last-child::-webkit-scrollbar {
+    display: none;
+  }
 }
 </style>
