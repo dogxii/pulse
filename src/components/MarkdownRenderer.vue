@@ -31,7 +31,7 @@ const renderedContent = computed(() => {
   // 先处理代码块（防止内部内容被其他规则处理）
   html = html.replace(
     /```(\w*)\n([\s\S]*?)```/g,
-    '<pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 my-2 overflow-x-auto"><code class="text-sm font-mono text-gray-800 dark:text-gray-200">$2</code></pre>'
+    '<pre class="not-prose bg-gray-900 text-gray-100 rounded-xl p-4 my-4 overflow-x-auto shadow-sm border border-gray-800"><code class="text-sm font-mono font-normal">$2</code></pre>'
   )
 
   // 处理表格（在其他处理之前）
@@ -40,35 +40,41 @@ const renderedContent = computed(() => {
   // 处理标题（移除标题后的换行，避免产生多余的 br）
   html = html.replace(
     /^### (.+)$/gm,
-    '<h3 class="md-heading text-base font-bold text-gray-900 dark:text-gray-100 mt-4 mb-2">$1</h3>'
+    '<h3 class="md-heading text-xl font-bold text-gray-900 dark:text-gray-100 mt-6 mb-3 tracking-tight">$1</h3>'
   )
   html = html.replace(
     /^## (.+)$/gm,
-    '<h2 class="md-heading text-lg font-bold text-gray-900 dark:text-gray-100 mt-4 mb-2">$1</h2>'
+    '<h2 class="md-heading text-2xl font-bold text-gray-900 dark:text-gray-100 mt-8 mb-4 tracking-tight border-b border-gray-100 dark:border-gray-800 pb-2">$1</h2>'
   )
   html = html.replace(
     /^# (.+)$/gm,
-    '<h1 class="md-heading text-xl font-bold text-gray-900 dark:text-gray-100 mt-4 mb-2">$1</h1>'
+    '<h1 class="md-heading text-3xl font-extrabold text-gray-900 dark:text-gray-100 mt-8 mb-6 tracking-tight">$1</h1>'
   )
 
   // 删除线（在粗体斜体之前处理）
   html = html.replace(
     /~~(.+?)~~/g,
-    '<del class="line-through text-gray-500 dark:text-gray-400">$1</del>'
+    '<del class="line-through text-gray-400 dark:text-gray-500 decoration-gray-400">$1</del>'
   )
 
   // 粗体
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold">$1</strong>')
-  html = html.replace(/__(.+?)__/g, '<strong class="font-bold">$1</strong>')
+  html = html.replace(
+    /\*\*(.+?)\*\*/g,
+    '<strong class="font-bold text-gray-900 dark:text-gray-100">$1</strong>'
+  )
+  html = html.replace(
+    /__(.+?)__/g,
+    '<strong class="font-bold text-gray-900 dark:text-gray-100">$1</strong>'
+  )
 
   // 斜体
-  html = html.replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
-  html = html.replace(/_(.+?)_/g, '<em class="italic">$1</em>')
+  html = html.replace(/\*(.+?)\*/g, '<em class="italic text-gray-800 dark:text-gray-200">$1</em>')
+  html = html.replace(/_(.+?)_/g, '<em class="italic text-gray-800 dark:text-gray-200">$1</em>')
 
   // 行内代码
   html = html.replace(
     /`([^`]+)`/g,
-    '<code class="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono text-gray-800 dark:text-gray-200">$1</code>'
+    '<code class="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded-md text-sm font-mono text-emerald-600 dark:text-emerald-400 border border-gray-200 dark:border-gray-700/50">$1</code>'
   )
 
   // 处理引用块（支持多行）
@@ -83,7 +89,7 @@ const renderedContent = computed(() => {
         .filter(line => line.includes('___QUOTE___'))
         .map(line => line.replace('___QUOTE___', '').trim())
         .join('<br />')
-      return `<blockquote class="border-l-4 border-emerald-500 dark:border-emerald-600 pl-4 my-3 text-gray-600 dark:text-gray-400 italic bg-emerald-50/50 dark:bg-emerald-950/20 py-2 rounded-r">${lines}</blockquote>`
+      return `<blockquote class="not-italic border-l-4 border-emerald-500 pl-4 my-4 text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/30 py-3 pr-3 rounded-r-lg shadow-sm">${lines}</blockquote>`
     }
   )
 
@@ -109,13 +115,15 @@ const renderedContent = computed(() => {
           const isChecked = item.includes('___TASK_CHECKED___')
           const content = item.replace(/___TASK_(?:UN)?CHECKED___/, '').trim()
           const checkbox = isChecked
-            ? '<input type="checkbox" checked disabled class="mr-2 align-middle cursor-not-allowed" />'
-            : '<input type="checkbox" disabled class="mr-2 align-middle cursor-not-allowed" />'
-          const textClass = isChecked ? 'line-through text-gray-500 dark:text-gray-500' : ''
-          return `<li class="flex items-start gap-2 ml-0 list-none"><span class="shrink-0 mt-0.5">${checkbox}</span><span class="${textClass}">${content}</span></li>`
+            ? '<input type="checkbox" checked disabled class="mt-1 mr-2 h-4 w-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 cursor-default" />'
+            : '<input type="checkbox" disabled class="mt-1 mr-2 h-4 w-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 cursor-default" />'
+          const textClass = isChecked
+            ? 'line-through text-gray-400 dark:text-gray-500'
+            : 'text-gray-700 dark:text-gray-300'
+          return `<li class="flex items-start gap-2 ml-0 list-none py-1">${checkbox}<span class="${textClass}">${content}</span></li>`
         })
         .join('')
-      return `<ul class="task-list my-2 space-y-1">${items}</ul>`
+      return `<ul class="task-list my-3 space-y-1">${items}</ul>`
     }
   )
 
@@ -128,10 +136,10 @@ const renderedContent = computed(() => {
         .filter(item => item.includes('___UL_ITEM___'))
         .map(item => {
           const content = item.replace('___UL_ITEM___', '').trim()
-          return `<li class="ml-4 list-disc">${content}</li>`
+          return `<li class="ml-4 pl-1 marker:text-gray-400 dark:marker:text-gray-500">${content}</li>`
         })
         .join('')
-      return `<ul class="my-2">${items}</ul>`
+      return `<ul class="list-disc my-3 space-y-1 text-gray-700 dark:text-gray-300 pl-4">${items}</ul>`
     }
   )
 
@@ -144,33 +152,33 @@ const renderedContent = computed(() => {
         .filter(item => item.includes('___OL_ITEM___'))
         .map(item => {
           const content = item.replace('___OL_ITEM___', '').trim()
-          return `<li class="ml-4 list-decimal">${content}</li>`
+          return `<li class="ml-4 pl-1 marker:text-gray-400 dark:marker:text-gray-500">${content}</li>`
         })
         .join('')
-      return `<ol class="my-2">${items}</ol>`
+      return `<ol class="list-decimal my-3 space-y-1 text-gray-700 dark:text-gray-300 pl-4">${items}</ol>`
     }
   )
 
   // 图片（行内图片，非帖子图片数组）- 必须在链接之前处理
   html = html.replace(
     /!\[([^\]]*)\]\(([^)]+)\)/g,
-    '<img src="$2" alt="$1" class="rounded-xl max-w-full my-2 inline-block cursor-zoom-in hover:opacity-90 transition-opacity" loading="lazy" />'
+    '<img src="$2" alt="$1" class="rounded-xl shadow-md max-w-full my-4 inline-block cursor-zoom-in hover:opacity-95 transition-opacity border border-gray-100 dark:border-gray-800" loading="lazy" />'
   )
 
   // 链接（新标签页打开）
   html = html.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline">$1</a>'
+    '<a href="$2" target="_blank" rel="noopener noreferrer" class="font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline decoration-emerald-300/50 hover:decoration-emerald-500 underline-offset-2 transition-colors">$1</a>'
   )
 
   // 自动链接（URL 自动转换为链接）
   html = html.replace(
     /(?<!href="|src=")https?:\/\/[^\s<]+[^\s<.,:;!?'")\]]/g,
-    '<a href="$&" target="_blank" rel="noopener noreferrer" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline break-all">$&</a>'
+    '<a href="$&" target="_blank" rel="noopener noreferrer" class="font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline decoration-emerald-300/50 hover:decoration-emerald-500 underline-offset-2 transition-colors break-all">$&</a>'
   )
 
   // 分割线
-  html = html.replace(/^---$/gm, '<hr class="my-4 border-gray-200 dark:border-gray-700" />')
+  html = html.replace(/^---$/gm, '<hr class="my-8 border-gray-200 dark:border-gray-800" />')
 
   // 处理换行
   // 移除标题前后的空行产生的多余换行
@@ -198,7 +206,10 @@ const renderedContent = computed(() => {
   html = html.replace(/(<hr[^>]*>)\n/g, '$1')
 
   // 双换行 = 新段落
-  html = html.replace(/\n\n+/g, '</p><p class="mb-2">')
+  html = html.replace(
+    /\n\n+/g,
+    '</p><p class="mb-4 leading-relaxed text-gray-700 dark:text-gray-300">'
+  )
 
   // 单换行 = 换行（但不在块级元素之后）
   html = html.replace(/\n/g, '<br />')
@@ -237,24 +248,24 @@ const renderedContent = computed(() => {
     !html.startsWith('<ol') &&
     !html.startsWith('<table')
   ) {
-    html = `<p class="mb-2">${html}</p>`
+    html = `<p class="mb-4 leading-relaxed text-gray-700 dark:text-gray-300">${html}</p>`
   }
 
   // 清除空段落
-  html = html.replace(/<p class="mb-2"><\/p>/g, '')
-  html = html.replace(/<p class="mb-2">\s*<\/p>/g, '')
+  html = html.replace(/<p class="[^"]*"><\/p>/g, '')
+  html = html.replace(/<p class="[^"]*">\s*<\/p>/g, '')
 
   // 确保段落内的块级元素正确处理
-  html = html.replace(/<p class="mb-2">(<h[1-3])/g, '$1')
+  html = html.replace(/<p class="[^"]*">(<h[1-3])/g, '$1')
   html = html.replace(/(<\/h[1-3]>)<\/p>/g, '$1')
-  html = html.replace(/<p class="mb-2">(<pre)/g, '$1')
+  html = html.replace(/<p class="[^"]*">(<pre)/g, '$1')
   html = html.replace(/(<\/pre>)<\/p>/g, '$1')
-  html = html.replace(/<p class="mb-2">(<blockquote)/g, '$1')
+  html = html.replace(/<p class="[^"]*">(<blockquote)/g, '$1')
   html = html.replace(/(<\/blockquote>)<\/p>/g, '$1')
-  html = html.replace(/<p class="mb-2">(<hr)/g, '$1')
-  html = html.replace(/<p class="mb-2">(<[uo]l)/g, '$1')
+  html = html.replace(/<p class="[^"]*">(<hr)/g, '$1')
+  html = html.replace(/<p class="[^"]*">(<[uo]l)/g, '$1')
   html = html.replace(/(<\/[uo]l>)<\/p>/g, '$1')
-  html = html.replace(/<p class="mb-2">(<table)/g, '$1')
+  html = html.replace(/<p class="[^"]*">(<table)/g, '$1')
   html = html.replace(/(<\/table>)<\/p>/g, '$1')
 
   return html
@@ -300,27 +311,29 @@ function processMarkdownTables(text: string): string {
     )
 
     // 生成 HTML
-    let tableHtml = '<table class="min-w-full border-collapse my-4 text-sm">'
+    let tableHtml =
+      '<div class="overflow-x-auto my-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"><table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">'
 
     // 表头
-    tableHtml += '<thead class="bg-gray-50 dark:bg-gray-800"><tr>'
+    tableHtml += '<thead class="bg-gray-50 dark:bg-gray-800/50"><tr>'
     headerCells.forEach((cell, i) => {
       const align = alignments[i] || 'left'
-      tableHtml += `<th class="border border-gray-200 dark:border-gray-700 px-4 py-2 text-${align} font-semibold text-gray-900 dark:text-gray-100">${cell}</th>`
+      tableHtml += `<th class="px-4 py-3 text-${align} text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">${cell}</th>`
     })
     tableHtml += '</tr></thead>'
 
     // 表格体
-    tableHtml += '<tbody>'
+    tableHtml +=
+      '<tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">'
     rows.forEach(row => {
-      tableHtml += '<tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">'
+      tableHtml += '<tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">'
       row.forEach((cell, i) => {
         const align = alignments[i] || 'left'
-        tableHtml += `<td class="border border-gray-200 dark:border-gray-700 px-4 py-2 text-${align} text-gray-700 dark:text-gray-300">${cell}</td>`
+        tableHtml += `<td class="px-4 py-3 text-${align} text-gray-700 dark:text-gray-300 whitespace-nowrap">${cell}</td>`
       })
       tableHtml += '</tr>'
     })
-    tableHtml += '</tbody></table>'
+    tableHtml += '</tbody></table></div>'
 
     return tableHtml
   })
@@ -329,83 +342,48 @@ function processMarkdownTables(text: string): string {
 
 <template>
   <!-- eslint-disable-next-line vue/no-v-html -->
-  <div class="markdown-content leading-relaxed" :class="props.class" v-html="renderedContent" />
+  <div class="markdown-content" :class="props.class" v-html="renderedContent" />
 </template>
 
 <style scoped>
-/* 标题样式 - 固定间距 */
-.markdown-content :deep(.md-heading) {
-  line-height: 1.4;
+/*
+  这里保留一些基础的重置和特定样式，
+  大部分样式已经迁移到内联 Tailwind 类中以获得更好的可维护性。
+*/
+
+.markdown-content {
+  /* 基础字体设置 */
+  font-size: 1rem;
+  line-height: 1.75;
 }
 
-.markdown-content :deep(.md-heading:first-child) {
-  margin-top: 0;
+/* 确保嵌套列表样式正确 */
+.markdown-content :deep(ul ul),
+.markdown-content :deep(ol ol),
+.markdown-content :deep(ul ol),
+.markdown-content :deep(ol ul) {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
 }
 
-/* 列表样式 */
-.markdown-content :deep(ul),
-.markdown-content :deep(ol) {
-  padding-left: 0;
-  list-style-position: inside;
-}
-
-.markdown-content :deep(ul.task-list) {
-  list-style: none;
-  padding-left: 0;
-}
-
-.markdown-content :deep(li) {
-  margin: 0.25rem 0;
-}
-
-/* 代码块样式 */
-.markdown-content :deep(pre) {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  margin: 0.5rem 0;
-}
-
-/* 引用块样式 */
-.markdown-content :deep(blockquote) {
-  margin: 0.75rem 0;
-}
-
-/* 链接样式 */
+/* 链接悬停效果增强 */
 .markdown-content :deep(a) {
-  word-break: break-word;
+  text-decoration-thickness: 2px;
 }
 
-/* 图片样式 */
+/* 图片最大高度限制 */
 .markdown-content :deep(img) {
-  max-height: 300px;
+  max-height: 500px;
   object-fit: contain;
 }
 
-/* 段落样式 */
-.markdown-content :deep(p) {
-  margin-bottom: 0.5rem;
-}
-
-.markdown-content :deep(p:last-child) {
+/* 最后一个元素去除底部边距 */
+.markdown-content > :deep(*:last-child) {
   margin-bottom: 0;
 }
 
-/* 分割线样式 */
-.markdown-content :deep(hr) {
-  margin: 1rem 0;
-}
-
-/* 表格样式 */
-.markdown-content :deep(table) {
-  border-radius: 0.5rem;
-  overflow: hidden;
-  display: block;
-  overflow-x: auto;
-  white-space: nowrap;
-}
-
-/* 删除线样式 */
-.markdown-content :deep(del) {
-  opacity: 0.7;
+/* 第一个元素去除顶部边距 */
+.markdown-content > :deep(*:first-child) {
+  margin-top: 0;
 }
 </style>
