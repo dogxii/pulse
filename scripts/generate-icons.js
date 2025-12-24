@@ -14,13 +14,18 @@
  *   https://realfavicongenerator.net/
  */
 
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path, { dirname } from "path";
+import sharp from "sharp";
+import { fileURLToPath } from "url";
+import logger from "./logger.js";
 
 // 图标尺寸
 const ICON_SIZES = [72, 96, 128, 144, 152, 192, 384, 512];
 
 // 图标目录
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const ICONS_DIR = path.join(__dirname, "../public/icons");
 
 // 确保目录存在
@@ -37,28 +42,19 @@ function generatePlaceholderSvg(size) {
 </svg>`;
 }
 
-// 检查是否安装了 sharp
-async function checkSharp() {
-	try {
-		require.resolve("sharp");
-		return true;
-	} catch (e) {
-		return false;
-	}
-}
+// Removed checkSharp function as sharp is now statically imported
 
 // 使用 sharp 生成 PNG 图标
 async function generatePngIcons() {
-	const sharp = require("sharp");
 	const inputSvg = path.join(__dirname, "../public/favicon.svg");
 
 	// 检查输入文件是否存在
 	if (!fs.existsSync(inputSvg)) {
-		console.error("Error: favicon.svg not found");
-		process.exit(1);
+		logger.error("Error: favicon.svg not found");
+		throw new Error("favicon.svg not found");
 	}
 
-	console.log("Generating PWA icons...\n");
+	logger.warn("Generating PWA icons...\n");
 
 	for (const size of ICON_SIZES) {
 		const outputPath = path.join(ICONS_DIR, `icon-${size}x${size}.png`);
@@ -72,49 +68,50 @@ async function generatePngIcons() {
 				.png()
 				.toFile(outputPath);
 
-			console.log(`✓ Generated: icon-${size}x${size}.png`);
+			logger.warn(`✓ Generated: icon-${size}x${size}.png`);
 		} catch (err) {
-			console.error(
+			logger.error(
 				`✗ Failed to generate icon-${size}x${size}.png:`,
 				err.message,
 			);
 		}
 	}
 
-	console.log("\nDone! Icons generated in public/icons/");
+	logger.warn("\nDone! Icons generated in public/icons/");
 }
 
 // 生成 SVG 占位图标（不需要 sharp）
 function generateSvgPlaceholders() {
-	console.log("Sharp not installed. Generating SVG placeholders...\n");
-	console.log("To generate proper PNG icons, install sharp:");
-	console.log("  npm install sharp --save-dev\n");
+	logger.warn("Sharp not installed. Generating SVG placeholders...\n");
+	logger.warn("To generate proper PNG icons, install sharp:");
+	logger.warn("  npm install sharp --save-dev\n");
 
 	for (const size of ICON_SIZES) {
 		const outputPath = path.join(ICONS_DIR, `icon-${size}x${size}.svg`);
 		const svg = generatePlaceholderSvg(size);
 
 		fs.writeFileSync(outputPath, svg);
-		console.log(`✓ Generated placeholder: icon-${size}x${size}.svg`);
+		logger.warn(`✓ Generated placeholder: icon-${size}x${size}.svg`);
 	}
 
-	console.log("\nNote: SVG placeholders have been generated.");
-	console.log("For production, please generate proper PNG icons using:");
-	console.log("  - https://www.pwabuilder.com/imageGenerator");
-	console.log("  - https://realfavicongenerator.net/");
+	logger.warn("\nNote: SVG placeholders have been generated.");
+	logger.warn("For production, please generate proper PNG icons using:");
+	logger.warn("  - https://www.pwabuilder.com/imageGenerator");
+	logger.warn("  - https://realfavicongenerator.net/");
 }
 
 // 主函数
 async function main() {
-	console.log("=== Pulse PWA Icon Generator ===\n");
+	logger.warn("=== Pulse PWA Icon Generator ===\n");
 
-	const hasSharp = await checkSharp();
-
-	if (hasSharp) {
+	try {
 		await generatePngIcons();
-	} else {
+	} catch (err) {
+		logger.warn(
+			"Sharp not installed or failed. Generating SVG placeholders...",
+		);
 		generateSvgPlaceholders();
 	}
 }
 
-main().catch(console.error);
+main().catch((err) => logger.error(err));
