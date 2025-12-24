@@ -192,7 +192,7 @@ function goBack() {
   <div
     class="min-h-screen bg-gray-50/50 dark:bg-[#0f0f0f] transition-colors duration-300"
     style="
-      padding-top: env(safe-area-inset-top, 0px);
+      padding-top: calc(env(safe-area-inset-top, 0px) / 2);
       padding-bottom: env(safe-area-inset-bottom, 0px);
     "
   >

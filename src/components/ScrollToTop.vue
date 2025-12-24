@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // 浮动操作按钮组件
 // 桌面端：返回顶部按钮
-// 移动端：+ 按钮用于发帖，长按返回顶部
+// 移动端：+ 按钮用于发帖
 
 import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
@@ -29,9 +29,6 @@ const authStore = useAuthStore()
 const isVisible = ref(false)
 const isScrolling = ref(false)
 const isMobile = ref(false)
-const longPressTimer = ref<ReturnType<typeof globalThis.setTimeout> | null>(null)
-const isLongPress = ref(false)
-const showTooltip = ref(false)
 
 // ========== 计算属性 ==========
 const isLoggedIn = computed(() => authStore.isLoggedIn)
@@ -59,7 +56,6 @@ function scrollToTop() {
   if (isScrolling.value) return
 
   isScrolling.value = true
-  showTooltip.value = false
 
   globalThis.window.scrollTo({
     top: 0,
@@ -96,59 +92,15 @@ function goToNewPost() {
 
 /**
  * 处理点击事件
- * 移动端：短按发帖
- * 桌面端：短按返回顶部
+ * 移动端：发帖
+ * 桌面端：返回顶部
  */
 function handleClick() {
-  if (isLongPress.value) {
-    isLongPress.value = false
-    return
-  }
-
   if (isMobile.value) {
     goToNewPost()
   } else {
     scrollToTop()
   }
-}
-
-/**
- * 开始长按（移动端用于返回顶部）
- */
-function handleTouchStart() {
-  if (!isMobile.value) return
-
-  longPressTimer.value = globalThis.setTimeout(() => {
-    isLongPress.value = true
-    scrollToTop()
-    // 触觉反馈（如果支持）
-    if ('vibrate' in globalThis.navigator) {
-      globalThis.navigator.vibrate(50)
-    }
-  }, 500) // 500ms 触发长按
-}
-
-/**
- * 取消长按
- */
-function handleTouchEnd() {
-  if (longPressTimer.value) {
-    globalThis.clearTimeout(longPressTimer.value)
-    longPressTimer.value = null
-  }
-}
-
-/**
- * 鼠标悬停显示提示
- */
-function handleMouseEnter() {
-  if (isMobile.value) {
-    showTooltip.value = true
-  }
-}
-
-function handleMouseLeave() {
-  showTooltip.value = false
 }
 
 // ========== 生命周期 ==========
@@ -166,9 +118,6 @@ onMounted(() => {
 onUnmounted(() => {
   globalThis.window.removeEventListener('scroll', handleScroll)
   globalThis.window.removeEventListener('resize', checkMobile)
-  if (longPressTimer.value) {
-    globalThis.clearTimeout(longPressTimer.value)
-  }
 })
 </script>
 
@@ -190,26 +139,6 @@ onUnmounted(() => {
         'bottom-[calc(1.5rem+env(safe-area-inset-bottom))]',
       ]"
     >
-      <!-- 移动端提示气泡 -->
-      <Transition
-        enter-active-class="transition duration-150 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-100 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div
-          v-if="showTooltip && isMobile"
-          class="absolute bottom-full mb-2 right-0 px-3 py-1.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs font-medium rounded-lg whitespace-nowrap shadow-lg"
-        >
-          长按返回顶部
-          <div
-            class="absolute top-full right-4 -mt-1 border-4 border-transparent border-t-gray-900 dark:border-t-gray-100"
-          />
-        </div>
-      </Transition>
-
       <!-- FAB 按钮 -->
       <button
         :class="[
@@ -233,20 +162,11 @@ onUnmounted(() => {
         ]"
         :disabled="isScrolling"
         :aria-label="isMobile ? '发布新动态' : '返回顶部'"
-        :title="isMobile ? '点击发帖，长按返回顶部' : '返回顶部'"
+        :title="isMobile ? '发布新动态' : '返回顶部'"
         @click="handleClick"
-        @touchstart.passive="handleTouchStart"
-        @touchend="handleTouchEnd"
-        @touchcancel="handleTouchEnd"
-        @mouseenter="handleMouseEnter"
-        @mouseleave="handleMouseLeave"
       >
         <!-- 移动端显示 + 号 -->
-        <Plus
-          v-if="isMobile"
-          :size="24"
-          :class="['transition-transform duration-200', isScrolling ? 'rotate-180' : '']"
-        />
+        <Plus v-if="isMobile" :size="24" class="transition-transform duration-200" />
         <!-- 桌面端显示箭头 -->
         <ArrowUp
           v-else

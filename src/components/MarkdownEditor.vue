@@ -330,11 +330,17 @@ onUnmounted(() => {
   <div
     :class="[
       'markdown-editor rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-900 transition-all duration-300',
-      isFullscreen ? 'fixed inset-4 z-50 flex flex-col shadow-2xl' : 'relative',
+      isFullscreen
+        ? 'fixed inset-4 z-50 flex flex-col shadow-2xl bg-white dark:bg-gray-900'
+        : 'relative',
     ]"
   >
     <!-- 全屏模式遮罩 -->
-    <div v-if="isFullscreen" class="fixed inset-0 bg-black/50 -z-10" @click="toggleFullscreen" />
+    <div
+      v-if="isFullscreen"
+      class="fixed inset-0 bg-gray-900/60 dark:bg-black/70 -z-10"
+      @click="toggleFullscreen"
+    />
 
     <!-- 工具栏 -->
     <div

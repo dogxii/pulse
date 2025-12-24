@@ -193,7 +193,7 @@ const todayPostCount = computed(() => {
   <div
     class="min-h-screen bg-gray-50/50 dark:bg-[#0f0f0f] text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300"
     style="
-      padding-top: env(safe-area-inset-top, 0px);
+      padding-top: calc(env(safe-area-inset-top, 0px) / 2);
       padding-left: env(safe-area-inset-left, 0px);
       padding-right: env(safe-area-inset-right, 0px);
     "
@@ -210,7 +210,7 @@ const todayPostCount = computed(() => {
       <div
         v-if="showUpdateBanner"
         class="fixed top-0 left-0 right-0 z-50 bg-emerald-500 dark:bg-emerald-600 text-white px-4 py-3 shadow-lg"
-        style="padding-top: calc(env(safe-area-inset-top, 0px) + 12px)"
+        style="padding-top: calc(env(safe-area-inset-top, 0px) / 2 + 8px)"
       >
         <div class="max-w-7xl mx-auto flex items-center justify-between">
           <div class="flex items-center gap-3">
