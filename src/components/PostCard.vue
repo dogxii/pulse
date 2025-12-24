@@ -195,7 +195,7 @@ const changeLightboxIndex = (index: number) => {
     <div class="mb-6">
       <MarkdownRenderer
         :content="post.content"
-        class="text-gray-800 dark:text-gray-200 text-lg font-medium"
+        class="text-gray-800 dark:text-gray-200 text-[17px]"
       />
 
       <!-- 图片（如果有） -->

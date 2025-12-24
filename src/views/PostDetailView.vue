@@ -430,7 +430,7 @@ watch(
           <div class="mb-6">
             <MarkdownRenderer
               :content="post.content"
-              class="text-gray-800 dark:text-gray-200 text-xl"
+              class="text-gray-800 dark:text-gray-200 text-[19px]"
             />
 
             <!-- 图片 -->
