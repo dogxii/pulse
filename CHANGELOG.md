@@ -1,6 +1,26 @@
 # Changelog
 
 
+## v1.2.0
+
+[compare changes](https://github.com/dogxii/pulse/compare/v1.1.0...v1.2.0)
+
+### 🚀 Enhancements
+
+- Enhance admin and post management features ([70326c1](https://github.com/dogxii/pulse/commit/70326c1))
+
+### 🩹 Fixes
+
+- Refactor Markdown rendering to improve code block handling ([e701bb0](https://github.com/dogxii/pulse/commit/e701bb0))
+
+### 🏡 Chore
+
+- Update mock user avatar URLs to use new domain ([810d915](https://github.com/dogxii/pulse/commit/810d915))
+
+### ❤️ Contributors
+
+- Dogxi ([@dogxii](https://github.com/dogxii))
+
 ## v1.1.0
 
 
