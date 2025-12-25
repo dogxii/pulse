@@ -547,7 +547,7 @@ watch(
             <p class="text-gray-500 dark:text-gray-400 text-sm mb-3">登录后即可发表评论</p>
             <router-link
               to="/login"
-              class="inline-block px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg font-medium text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+              class="inline-flex items-center justify-center px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg font-medium text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
             >
               登录
             </router-link>

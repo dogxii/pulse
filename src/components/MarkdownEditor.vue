@@ -497,7 +497,7 @@ onUnmounted(() => {
           <div class="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
             <button
               type="button"
-              class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+              class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer"
               :class="
                 mode === 'write'
                   ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
@@ -506,11 +506,11 @@ onUnmounted(() => {
               @click="mode = 'write'"
             >
               <Edit3 :size="14" />
-              <span class="hidden sm:inline">编辑</span>
+              <span class="hidden text-nowrap sm:inline">编辑</span>
             </button>
             <button
               type="button"
-              class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+              class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer"
               :class="
                 mode === 'preview'
                   ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
@@ -519,7 +519,7 @@ onUnmounted(() => {
               @click="mode = 'preview'"
             >
               <Eye :size="14" />
-              <span class="hidden sm:inline">预览</span>
+              <span class="hidden text-nowrap sm:inline">预览</span>
             </button>
           </div>
         </div>
@@ -638,7 +638,7 @@ onUnmounted(() => {
         :disabled="disabled"
         :class="[
           'w-full px-4 py-4 md:px-5 md:py-5',
-          'text-gray-800 dark:text-gray-200 bg-transparent',
+          'text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-900',
           'placeholder-gray-400 dark:placeholder-gray-500',
           'border-none focus:outline-none focus:ring-0 resize-none',
           'font-mono leading-relaxed',
@@ -657,6 +657,7 @@ onUnmounted(() => {
         :class="[
           'preview px-4 py-4 md:px-5 md:py-5',
           'prose prose-gray dark:prose-invert max-w-none',
+          'bg-white dark:bg-gray-900',
           'text-gray-800 dark:text-gray-200 leading-relaxed min-h-50',
           isFullscreen ? 'h-full overflow-y-auto' : '',
         ]"

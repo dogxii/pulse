@@ -167,14 +167,14 @@ onMounted(async () => {
         <router-link
           v-if="authStore.isLoggedIn"
           to="/new"
-          class="inline-block bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-lg shadow-gray-200 dark:shadow-gray-950/30"
+          class="inline-flex items-center justify-center bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-lg shadow-gray-200 dark:shadow-gray-950/30"
         >
           发布动态
         </router-link>
         <router-link
           v-else
           to="/login"
-          class="inline-block bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-lg shadow-gray-200 dark:shadow-gray-950/30"
+          class="inline-flex items-center justify-center bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-lg shadow-gray-200 dark:shadow-gray-950/30"
         >
           登录
         </router-link>
