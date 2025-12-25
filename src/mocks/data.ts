@@ -9,7 +9,7 @@ export const mockUsers: User[] = [
 	{
 		id: "user-1",
 		username: "zhangsan",
-		avatar_url: "https://api.dicebear.com/9.x/avataaars/svg?seed=zhangsan",
+		avatar_url: "https://avatar.exlb.net/zhangsan",
 		bio: "全栈开发工程师 | Vue.js 爱好者 | 开源贡献者",
 		joined_at: "2024-01-15T08:00:00.000Z",
 		last_post_at: new Date().toISOString(),
@@ -19,7 +19,7 @@ export const mockUsers: User[] = [
 	{
 		id: "user-2",
 		username: "lisi",
-		avatar_url: "https://api.dicebear.com/9.x/avataaars/svg?seed=lisi",
+		avatar_url: "https://avatar.exlb.net/lisi",
 		bio: "设计师 & 前端开发 | 热爱创造美好的用户体验",
 		joined_at: "2024-02-20T10:30:00.000Z",
 		last_post_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
@@ -29,7 +29,7 @@ export const mockUsers: User[] = [
 	{
 		id: "user-3",
 		username: "wangwu",
-		avatar_url: "https://api.dicebear.com/9.x/avataaars/svg?seed=wangwu",
+		avatar_url: "https://avatar.exlb.net/wangwu",
 		bio: "后端工程师 | Go & Rust | 云原生",
 		joined_at: "2024-03-10T14:20:00.000Z",
 		last_post_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
@@ -39,7 +39,7 @@ export const mockUsers: User[] = [
 	{
 		id: "user-4",
 		username: "zhaoliu",
-		avatar_url: "https://api.dicebear.com/9.x/avataaars/svg?seed=zhaoliu",
+		avatar_url: "https://avatar.exlb.net/zhaoliu",
 		bio: "产品经理 | 用户体验研究 | 数据驱动决策",
 		joined_at: "2024-04-05T09:15:00.000Z",
 		last_post_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
@@ -49,7 +49,7 @@ export const mockUsers: User[] = [
 	{
 		id: "user-5",
 		username: "sunqi",
-		avatar_url: "https://api.dicebear.com/9.x/avataaars/svg?seed=sunqi",
+		avatar_url: "https://avatar.exlb.net/sunqi",
 		bio: "",
 		joined_at: "2024-05-01T16:45:00.000Z",
 		last_post_at: "",
@@ -59,7 +59,7 @@ export const mockUsers: User[] = [
 	{
 		id: "user-6",
 		username: "zhouba",
-		avatar_url: "https://api.dicebear.com/9.x/avataaars/svg?seed=zhouba",
+		avatar_url: "https://avatar.exlb.net/zhouba",
 		bio: "iOS 开发者 | Swift 忠实粉丝 | Apple 生态",
 		joined_at: "2024-01-20T11:00:00.000Z",
 		last_post_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
