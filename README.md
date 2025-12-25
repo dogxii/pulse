@@ -261,6 +261,7 @@ uploads/
 | `bun dev:mock` | 启动 Mock 模式开发服务器 |
 | `bun build`    | 构建生产版本             |
 | `bun preview`  | 预览生产构建             |
+| `bun release`  | 发布新版本               |
 
 ## Mock 开发模式
 
@@ -298,9 +299,51 @@ window.__pulse_mock__.reset()
 // 查看模拟数据
 window.__pulse_mock__.data.users
 window.__pulse_mock__.data.posts
+
+// 重新登录模拟用户
+window.__pulse_mock__.relogin()
 ```
 
 详细文档请查看 [src/mocks/README.md](./src/mocks/README.md)
+
+## 版本发布
+
+项目使用 [changelogen](https://github.com/unjs/changelogen) 自动生成 changelog 并发布版本。
+
+### 发布新版本
+
+```bash
+# 自动根据 commit 生成 changelog，更新版本号，创建 tag 并推送
+bun release
+```
+
+### Commit 规范
+
+使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
+
+- `feat:` 新功能 → 版本号 minor +1
+- `fix:` 修复 → 版本号 patch +1
+- `docs:` 文档
+- `style:` 样式
+- `refactor:` 重构
+- `perf:` 性能优化
+- `test:` 测试
+- `chore:` 构建/工具
+
+### GitHub 自动发版
+
+推送 tag 后，GitHub Actions 会自动：
+
+1. 构建项目
+2. 生成 Release Notes（基于 commits）
+3. 创建 GitHub Release
+
+### 版本号说明
+
+- 版本号在 `package.json` 中维护
+- 构建时自动生成 `public/version.json`
+- Service Worker 和应用内可读取版本号
+- 版本变更会触发 Service Worker 更新缓存
 
 ## 许可证
 

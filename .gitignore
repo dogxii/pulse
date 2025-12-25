@@ -25,3 +25,6 @@ dist-ssr
 
 .env
 ignore_*.md
+
+# Build generated
+public/version.json

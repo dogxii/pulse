@@ -1,27 +1,56 @@
 // Pulse Service Worker
 // 提供离线支持和智能缓存策略
+// 版本号从 version.json 动态加载
 
-const CACHE_NAME = "pulse-v1";
-const STATIC_CACHE_NAME = "pulse-static-v1";
-const DYNAMIC_CACHE_NAME = "pulse-dynamic-v1";
-const IMAGE_CACHE_NAME = "pulse-images-v1";
+// 默认版本（会被 version.json 覆盖）
+let CACHE_VERSION = "1.0.0";
+
+// 缓存名称（会在获取版本后更新）
+let STATIC_CACHE_NAME = `pulse-static-${CACHE_VERSION}`;
+let DYNAMIC_CACHE_NAME = `pulse-dynamic-${CACHE_VERSION}`;
+let IMAGE_CACHE_NAME = `pulse-images-${CACHE_VERSION}`;
 
 // 静态资源（预缓存）
-const STATIC_ASSETS = ["/", "/favicon.svg", "/guest.svg", "/manifest.json"];
-
-// 需要网络优先的 API 路径
-const API_ROUTES = ["/api/posts", "/api/users", "/api/auth", "/api/comments"];
+const STATIC_ASSETS = ["/favicon.svg", "/guest.svg", "/manifest.json"];
 
 // 图片域名白名单
 const IMAGE_HOSTS = ["avatars.githubusercontent.com", "api.dicebear.com"];
+
+/**
+ * 更新缓存名称
+ */
+function updateCacheNames(version) {
+	CACHE_VERSION = version;
+	STATIC_CACHE_NAME = `pulse-static-${version}`;
+	DYNAMIC_CACHE_NAME = `pulse-dynamic-${version}`;
+	IMAGE_CACHE_NAME = `pulse-images-${version}`;
+}
+
+/**
+ * 获取版本信息
+ */
+async function fetchVersion() {
+	try {
+		const response = await fetch("/version.json?t=" + Date.now());
+		if (response.ok) {
+			const data = await response.json();
+			if (data.version) {
+				updateCacheNames(data.version);
+				console.log("[SW] 版本:", CACHE_VERSION);
+			}
+		}
+	} catch (e) {
+		console.warn("[SW] 获取版本失败，使用默认版本:", CACHE_VERSION);
+	}
+}
 
 /**
  * 安装事件 - 预缓存静态资源
  */
 self.addEventListener("install", (event) => {
 	event.waitUntil(
-		caches
-			.open(STATIC_CACHE_NAME)
+		fetchVersion()
+			.then(() => caches.open(STATIC_CACHE_NAME))
 			.then((cache) => {
 				console.log("[SW] 预缓存静态资源");
 				return cache.addAll(STATIC_ASSETS);
@@ -38,13 +67,13 @@ self.addEventListener("install", (event) => {
  */
 self.addEventListener("activate", (event) => {
 	event.waitUntil(
-		caches
-			.keys()
+		fetchVersion()
+			.then(() => caches.keys())
 			.then((cacheNames) => {
 				return Promise.all(
 					cacheNames
 						.filter((name) => {
-							// 删除旧版本的缓存
+							// 删除所有旧版本的 pulse 缓存
 							return (
 								name.startsWith("pulse-") &&
 								name !== STATIC_CACHE_NAME &&
@@ -107,7 +136,7 @@ function isImageRequest(request) {
 }
 
 /**
- * 检查是否为静态资源
+ * 检查是否为静态资源（JS/CSS 等）
  */
 function isStaticAsset(url) {
 	const staticExtensions = [".js", ".css", ".woff", ".woff2", ".ttf", ".eot"];
@@ -115,7 +144,18 @@ function isStaticAsset(url) {
 }
 
 /**
- * 网络优先策略（用于 API 请求）
+ * 检查是否为带 hash 的静态资源（可以长期缓存）
+ * Vite 构建的资源通常带有 hash，如 index-abc123.js
+ */
+function isHashedAsset(url) {
+	// 匹配带 hash 的文件名模式：name-hash.ext 或 name.hash.ext
+	const hashedPattern = /[-.][\da-f]{8,}\.(js|css|woff2?|ttf|eot)$/i;
+	return hashedPattern.test(url.pathname);
+}
+
+/**
+ * 网络优先策略（用于 API 请求和 HTML 页面）
+ * 总是尝试获取最新内容，失败时才使用缓存
  */
 async function networkFirst(request, cacheName = DYNAMIC_CACHE_NAME) {
 	try {
@@ -132,7 +172,19 @@ async function networkFirst(request, cacheName = DYNAMIC_CACHE_NAME) {
 		// 网络失败，尝试从缓存获取
 		const cached = await caches.match(request);
 		if (cached) {
+			console.log("[SW] 使用缓存（离线）:", request.url);
 			return cached;
+		}
+
+		// 对于 HTML 页面，返回根页面（SPA fallback）
+		if (
+			request.mode === "navigate" ||
+			request.headers.get("Accept")?.includes("text/html")
+		) {
+			const fallback = await caches.match("/");
+			if (fallback) {
+				return fallback;
+			}
 		}
 
 		// 返回离线响应
@@ -150,7 +202,8 @@ async function networkFirst(request, cacheName = DYNAMIC_CACHE_NAME) {
 }
 
 /**
- * 缓存优先策略（用于静态资源和图片）
+ * 缓存优先策略（用于带 hash 的静态资源和图片）
+ * 这些资源内容不会变化，可以长期缓存
  */
 async function cacheFirst(request, cacheName = STATIC_CACHE_NAME) {
 	const cached = await caches.match(request);
@@ -182,36 +235,49 @@ async function cacheFirst(request, cacheName = STATIC_CACHE_NAME) {
 }
 
 /**
- * Stale-While-Revalidate 策略（用于页面导航）
+ * 网络优先 + 快速回退策略（用于不带 hash 的静态资源）
+ * 设置较短的网络超时，避免用户等待太久
  */
-async function staleWhileRevalidate(request, cacheName = DYNAMIC_CACHE_NAME) {
-	const cache = await caches.open(cacheName);
-	const cached = await cache.match(request);
+async function networkFirstWithTimeout(
+	request,
+	cacheName = STATIC_CACHE_NAME,
+	timeout = 3000,
+) {
+	const cached = await caches.match(request);
 
-	// 在后台更新缓存
-	const fetchPromise = fetch(request)
-		.then((response) => {
+	// 创建一个带超时的 fetch promise
+	const fetchPromise = new Promise(async (resolve, reject) => {
+		const timeoutId = setTimeout(() => {
+			reject(new Error("Network timeout"));
+		}, timeout);
+
+		try {
+			const response = await fetch(request);
+			clearTimeout(timeoutId);
+
+			// 缓存成功的响应
 			if (response.ok) {
+				const cache = await caches.open(cacheName);
 				cache.put(request, response.clone());
 			}
-			return response;
-		})
-		.catch(() => null);
 
-	// 如果有缓存，立即返回
-	if (cached) {
-		fetchPromise; // 后台更新
-		return cached;
+			resolve(response);
+		} catch (error) {
+			clearTimeout(timeoutId);
+			reject(error);
+		}
+	});
+
+	try {
+		return await fetchPromise;
+	} catch (error) {
+		// 网络失败或超时，使用缓存
+		if (cached) {
+			console.log("[SW] 网络超时，使用缓存:", request.url);
+			return cached;
+		}
+		throw error;
 	}
-
-	// 没有缓存，等待网络响应
-	const response = await fetchPromise;
-	if (response) {
-		return response;
-	}
-
-	// 返回离线页面
-	return caches.match("/") || new Response("离线", { status: 503 });
 }
 
 /**
@@ -233,6 +299,11 @@ self.addEventListener("fetch", (event) => {
 		return;
 	}
 
+	// 跳过 version.json（始终获取最新）
+	if (url.pathname === "/version.json") {
+		return;
+	}
+
 	// API 请求 - 网络优先
 	if (isApiRequest(url)) {
 		event.respondWith(networkFirst(event.request));
@@ -245,15 +316,23 @@ self.addEventListener("fetch", (event) => {
 		return;
 	}
 
-	// 静态资源 - 缓存优先
-	if (isStaticAsset(url)) {
+	// 带 hash 的静态资源 - 缓存优先（内容不变）
+	if (isHashedAsset(url)) {
 		event.respondWith(cacheFirst(event.request, STATIC_CACHE_NAME));
 		return;
 	}
 
-	// 页面导航 - Stale-While-Revalidate
+	// 不带 hash 的静态资源 - 网络优先 + 超时回退
+	if (isStaticAsset(url)) {
+		event.respondWith(
+			networkFirstWithTimeout(event.request, STATIC_CACHE_NAME, 2000),
+		);
+		return;
+	}
+
+	// 页面导航（HTML）- 始终网络优先
 	if (event.request.mode === "navigate") {
-		event.respondWith(staleWhileRevalidate(event.request));
+		event.respondWith(networkFirst(event.request, DYNAMIC_CACHE_NAME));
 		return;
 	}
 
@@ -275,10 +354,25 @@ self.addEventListener("message", (event) => {
 				return Promise.all(
 					cacheNames
 						.filter((name) => name.startsWith("pulse-"))
-						.map((name) => caches.delete(name)),
+						.map((name) => {
+							console.log("[SW] 清除缓存:", name);
+							return caches.delete(name);
+						}),
 				);
 			}),
 		);
+	}
+
+	// 获取版本信息
+	if (event.data && event.data.type === "GET_VERSION") {
+		event.ports[0].postMessage({
+			version: CACHE_VERSION,
+			caches: {
+				static: STATIC_CACHE_NAME,
+				dynamic: DYNAMIC_CACHE_NAME,
+				images: IMAGE_CACHE_NAME,
+			},
+		});
 	}
 });
 
@@ -287,7 +381,6 @@ self.addEventListener("message", (event) => {
  */
 self.addEventListener("sync", (event) => {
 	if (event.tag === "sync-posts") {
-		// 可以在这里实现离线发帖后的同步逻辑
 		console.log("[SW] 后台同步: sync-posts");
 	}
 });
@@ -316,7 +409,6 @@ self.addEventListener("push", (event) => {
  */
 self.addEventListener("notificationclick", (event) => {
 	event.notification.close();
-
 	event.waitUntil(clients.openWindow(event.notification.data || "/"));
 });
 

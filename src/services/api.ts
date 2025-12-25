@@ -39,26 +39,80 @@ interface DeleteResponse {
 	deleted: boolean;
 }
 
+// Token 数据结构
+interface TokenData {
+	token: string;
+	expiresAt: number; // Unix timestamp in milliseconds
+}
+
 // API 配置
 const API_BASE = "/api";
 
 // Token 存储键名
 const TOKEN_KEY = "pulse_auth_token";
 
+// Token 有效期（15天，单位毫秒）
+const TOKEN_EXPIRY_DURATION = 15 * 24 * 60 * 60 * 1000;
+
 /**
  * 获取存储的认证令牌
  */
 function getToken(): string | null {
 	if (typeof window === "undefined") return null;
-	return localStorage.getItem(TOKEN_KEY);
+
+	const tokenDataStr = localStorage.getItem(TOKEN_KEY);
+	if (!tokenDataStr) return null;
+
+	try {
+		const tokenData: TokenData = JSON.parse(tokenDataStr);
+		// 检查是否过期
+		if (tokenData.expiresAt > Date.now()) {
+			return tokenData.token;
+		}
+		// 已过期，清除
+		localStorage.removeItem(TOKEN_KEY);
+		return null;
+	} catch {
+		// 解析失败，清除无效数据
+		localStorage.removeItem(TOKEN_KEY);
+		return null;
+	}
 }
 
 /**
- * 设置认证令牌
+ * 设置认证令牌（带过期时间）
  */
 export function setToken(token: string): void {
 	if (typeof window === "undefined") return;
-	localStorage.setItem(TOKEN_KEY, token);
+
+	const tokenData: TokenData = {
+		token,
+		expiresAt: Date.now() + TOKEN_EXPIRY_DURATION,
+	};
+
+	localStorage.setItem(TOKEN_KEY, JSON.stringify(tokenData));
+}
+
+/**
+ * 刷新 Token 过期时间（延长有效期）
+ * 在用户活跃时调用，保持登录状态
+ */
+export function refreshTokenExpiry(): void {
+	if (typeof window === "undefined") return;
+
+	const tokenDataStr = localStorage.getItem(TOKEN_KEY);
+	if (!tokenDataStr) return;
+
+	try {
+		const tokenData: TokenData = JSON.parse(tokenDataStr);
+		// 只有当 token 未过期时才刷新
+		if (tokenData.expiresAt > Date.now()) {
+			tokenData.expiresAt = Date.now() + TOKEN_EXPIRY_DURATION;
+			localStorage.setItem(TOKEN_KEY, JSON.stringify(tokenData));
+		}
+	} catch {
+		// 忽略解析错误
+	}
 }
 
 /**
@@ -70,10 +124,29 @@ export function removeToken(): void {
 }
 
 /**
- * 检查是否已认证
+ * 检查是否已认证（且未过期）
  */
 export function isAuthenticated(): boolean {
 	return !!getToken();
+}
+
+/**
+ * 获取 Token 剩余有效时间（毫秒）
+ * 返回 0 表示已过期或未登录
+ */
+export function getTokenRemainingTime(): number {
+	if (typeof window === "undefined") return 0;
+
+	const tokenDataStr = localStorage.getItem(TOKEN_KEY);
+	if (!tokenDataStr) return 0;
+
+	try {
+		const tokenData: TokenData = JSON.parse(tokenDataStr);
+		const remaining = tokenData.expiresAt - Date.now();
+		return remaining > 0 ? remaining : 0;
+	} catch {
+		return 0;
+	}
 }
 
 /**
@@ -118,6 +191,8 @@ async function fetchAPI<T>(
 	// 如果存在令牌，添加认证头
 	if (token) {
 		headers["Authorization"] = `Bearer ${token}`;
+		// 每次 API 请求时刷新 token 过期时间（用户活跃）
+		refreshTokenExpiry();
 	}
 
 	// 如果是 JSON 请求体，添加 Content-Type
@@ -132,7 +207,7 @@ async function fetchAPI<T>(
 			...options,
 			headers,
 		});
-	} catch (error) {
+	} catch {
 		// 网络错误或请求被阻止
 		throw new APIError("网络请求失败，请检查网络连接或后端服务是否运行", 0);
 	}
@@ -348,6 +423,8 @@ export const uploads = {
 		const headers: Record<string, string> = {};
 		if (token) {
 			headers["Authorization"] = `Bearer ${token}`;
+			// 刷新 token 过期时间
+			refreshTokenExpiry();
 		}
 
 		const response = await fetch(`${API_BASE}/uploads`, {
@@ -449,5 +526,7 @@ export default {
 	setToken,
 	removeToken,
 	isAuthenticated,
+	refreshTokenExpiry,
+	getTokenRemainingTime,
 	APIError,
 };

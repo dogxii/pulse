@@ -5,7 +5,9 @@ import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import {
 	auth,
+	getTokenRemainingTime,
 	isAuthenticated,
+	refreshTokenExpiry,
 	removeToken,
 	setToken,
 	users as usersApi,
@@ -15,20 +17,36 @@ import type { User } from "../types";
 // 用户缓存键名
 const USER_CACHE_KEY = "pulse_user_cache";
 
+// 用户缓存有效期（15天，与 token 一致）
+const USER_CACHE_DURATION = 15 * 24 * 60 * 60 * 1000;
+
+// 用户缓存数据结构
+interface UserCache {
+	user: User;
+	expiresAt: number;
+}
+
 /**
  * 从 localStorage 获取缓存的用户信息
  */
 function getCachedUser(): User | null {
 	try {
 		const cached = localStorage.getItem(USER_CACHE_KEY);
-		if (cached) {
-			return JSON.parse(cached) as User;
+		if (!cached) return null;
+
+		const cacheData: UserCache = JSON.parse(cached);
+		// 检查缓存是否过期
+		if (cacheData.expiresAt > Date.now()) {
+			return cacheData.user;
 		}
+		// 缓存过期，清除
+		localStorage.removeItem(USER_CACHE_KEY);
+		return null;
 	} catch {
 		// 解析失败，清除无效缓存
 		localStorage.removeItem(USER_CACHE_KEY);
+		return null;
 	}
-	return null;
 }
 
 /**
@@ -36,9 +54,31 @@ function getCachedUser(): User | null {
  */
 function setCachedUser(user: User | null): void {
 	if (user) {
-		localStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
+		const cacheData: UserCache = {
+			user,
+			expiresAt: Date.now() + USER_CACHE_DURATION,
+		};
+		localStorage.setItem(USER_CACHE_KEY, JSON.stringify(cacheData));
 	} else {
 		localStorage.removeItem(USER_CACHE_KEY);
+	}
+}
+
+/**
+ * 刷新用户缓存过期时间
+ */
+function refreshUserCache(): void {
+	try {
+		const cached = localStorage.getItem(USER_CACHE_KEY);
+		if (!cached) return;
+
+		const cacheData: UserCache = JSON.parse(cached);
+		if (cacheData.expiresAt > Date.now()) {
+			cacheData.expiresAt = Date.now() + USER_CACHE_DURATION;
+			localStorage.setItem(USER_CACHE_KEY, JSON.stringify(cacheData));
+		}
+	} catch {
+		// 忽略错误
 	}
 }
 
@@ -73,6 +113,8 @@ export const useAuthStore = defineStore("auth", () => {
 	const userId = computed(() => currentUser.value?.id ?? null);
 	// 当前用户名
 	const username = computed(() => currentUser.value?.username ?? null);
+	// Token 剩余有效时间（毫秒）
+	const tokenRemainingTime = computed(() => getTokenRemainingTime());
 
 	// ========== Actions ==========
 
@@ -88,6 +130,10 @@ export const useAuthStore = defineStore("auth", () => {
 
 		try {
 			if (isAuthenticated()) {
+				// 刷新 token 和缓存过期时间（用户活跃）
+				refreshTokenExpiry();
+				refreshUserCache();
+
 				// 从服务器获取最新用户信息
 				const user = await auth.me();
 				currentUser.value = user;
@@ -100,8 +146,7 @@ export const useAuthStore = defineStore("auth", () => {
 			}
 		} catch (e) {
 			// 令牌可能无效或已过期
-			// eslint-disable-next-line no-console
-			console.error("认证初始化失败:", e);
+			globalThis.console.error("认证初始化失败:", e);
 			removeToken();
 			clearCachedUser();
 			currentUser.value = null;
@@ -168,6 +213,9 @@ export const useAuthStore = defineStore("auth", () => {
 		error.value = null;
 
 		try {
+			// 刷新 token 过期时间
+			refreshTokenExpiry();
+
 			const user = await auth.me();
 			currentUser.value = user;
 			// 更新缓存
@@ -243,6 +291,17 @@ export const useAuthStore = defineStore("auth", () => {
 		return currentUser.value.id === ownerId || currentUser.value.is_admin;
 	}
 
+	/**
+	 * 手动刷新 Token 过期时间
+	 * 可在用户进行重要操作时调用
+	 */
+	function keepAlive(): void {
+		if (isAuthenticated()) {
+			refreshTokenExpiry();
+			refreshUserCache();
+		}
+	}
+
 	return {
 		// 状态
 		currentUser,
@@ -255,6 +314,7 @@ export const useAuthStore = defineStore("auth", () => {
 		isAdmin,
 		userId,
 		username,
+		tokenRemainingTime,
 
 		// Actions
 		initialize,
@@ -267,6 +327,7 @@ export const useAuthStore = defineStore("auth", () => {
 		clearError,
 		isOwner,
 		canModify,
+		keepAlive,
 	};
 });
 
