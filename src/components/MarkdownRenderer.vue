@@ -27,13 +27,24 @@ const renderedContent = computed(() => {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
 
-  // 先处理代码块（防止内部内容被其他规则处理）
-  // 优化：添加自定义滚动条类 custom-scrollbar
-  // 移除 Mac 样式
-  html = html.replace(
-    /```(\w*)\n([\s\S]*?)```/g,
-    '<pre class="custom-scrollbar not-prose bg-gray-900 text-gray-100 rounded-2xl p-4 my-3 overflow-x-auto shadow-sm border border-gray-800"><code class="block text-sm font-mono font-normal">$2</code></pre>'
-  )
+  // 使用占位符保护代码块，防止被其他规则处理
+  const codeBlocks: string[] = []
+
+  // 先提取代码块并用占位符替换
+  // 使用 \x00 (NULL字符) 作为占位符边界，不会被 Markdown 语法匹配
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, _lang, code) => {
+    const placeholder = `\x00CODEBLOCK${codeBlocks.length}\x00`
+    codeBlocks.push(code)
+    return placeholder
+  })
+
+  // 处理行内代码（也需要保护）
+  const inlineCodes: string[] = []
+  html = html.replace(/`([^`]+)`/g, (_match, code) => {
+    const placeholder = `\x00INLINECODE${inlineCodes.length}\x00`
+    inlineCodes.push(code)
+    return placeholder
+  })
 
   // 处理表格（在其他处理之前）
   html = processMarkdownTables(html)
@@ -73,17 +84,10 @@ const renderedContent = computed(() => {
   html = html.replace(/\*(.+?)\*/g, '<em class="italic text-gray-800 dark:text-gray-200">$1</em>')
   html = html.replace(/_(.+?)_/g, '<em class="italic text-gray-800 dark:text-gray-200">$1</em>')
 
-  // 行内代码
-  // 优化：更精致的胶囊样式
-  html = html.replace(
-    /`([^`]+)`/g,
-    '<code class="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded-md text-[0.9em] font-mono text-emerald-600 dark:text-emerald-400 border border-gray-200 dark:border-gray-700/50 align-middle">$1</code>'
-  )
-
   // 处理引用块
   html = html.replace(/^&gt; (.+)$/gm, '___QUOTE___$1___QUOTE_END___')
 
-  // 优化：引用块样式更像社交媒体的“转发/引用”样式
+  // 优化：引用块样式更像社交媒体的"转发/引用"样式
   html = html.replace(
     /(___QUOTE___[\s\S]+?___QUOTE_END___(?:\n___QUOTE___[\s\S]+?___QUOTE_END___)*)/g,
     match => {
@@ -177,7 +181,7 @@ const renderedContent = computed(() => {
   // 自动链接
   html = html.replace(
     /(?<!href="|src=")https?:\/\/[^\s<]+[^\s<.,:;!?'")\]]/g,
-    '<a href="$&" target="_blank" rel="noopener noreferrer" class="font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline decoration-emerald-300/50 hover:decoration-emerald-500 underline-offset-2 transition-all break-all">$1</a>'
+    '<a href="$&" target="_blank" rel="noopener noreferrer" class="font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline decoration-emerald-300/50 hover:decoration-emerald-500 underline-offset-2 transition-all break-all">$&</a>'
   )
 
   // 分割线
@@ -189,8 +193,6 @@ const renderedContent = computed(() => {
   // 处理换行
   html = html.replace(/\n(<h[1-3] class="md-heading)/g, '$1')
   html = html.replace(/(<\/h[1-3]>)\n/g, '$1')
-  html = html.replace(/\n(<pre class)/g, '$1')
-  html = html.replace(/(<\/pre>)\n/g, '$1')
   html = html.replace(/\n(<blockquote)/g, '$1')
   html = html.replace(/(<\/blockquote>)\n/g, '$1')
   html = html.replace(/\n(<[uo]l class)/g, '$1')
@@ -199,6 +201,9 @@ const renderedContent = computed(() => {
   html = html.replace(/(<\/div>)\n/g, '$1')
   html = html.replace(/\n(<hr)/g, '$1')
   html = html.replace(/(<hr[^>]*>)\n/g, '$1')
+  // 代码块占位符周围的换行处理
+  html = html.replace(/\n(\x00CODEBLOCK\d+\x00)/g, '$1')
+  html = html.replace(/(\x00CODEBLOCK\d+\x00)\n/g, '$1')
 
   // 双换行 = 新段落
   // 优化：段落间距适中，适合短文阅读
@@ -213,8 +218,6 @@ const renderedContent = computed(() => {
   // 清理残留 br
   html = html.replace(/<br \/>\s*(<h[1-3] class="md-heading)/g, '$1')
   html = html.replace(/(<\/h[1-3]>)\s*<br \/>/g, '$1')
-  html = html.replace(/<br \/>\s*(<pre class)/g, '$1')
-  html = html.replace(/(<\/pre>)\s*<br \/>/g, '$1')
   html = html.replace(/<br \/>\s*(<blockquote)/g, '$1')
   html = html.replace(/(<\/blockquote>)\s*<br \/>/g, '$1')
   html = html.replace(/<br \/>\s*(<[uo]l class)/g, '$1')
@@ -223,16 +226,19 @@ const renderedContent = computed(() => {
   html = html.replace(/(<\/div>)\s*<br \/>/g, '$1')
   html = html.replace(/<br \/>\s*(<hr)/g, '$1')
   html = html.replace(/(<hr[^>]*>)\s*<br \/>/g, '$1')
+  // 代码块占位符周围的 br 清理
+  html = html.replace(/<br \/>\s*(\x00CODEBLOCK\d+\x00)/g, '$1')
+  html = html.replace(/(\x00CODEBLOCK\d+\x00)\s*<br \/>/g, '$1')
 
   // 包装成段落
   if (
     !html.startsWith('<h') &&
-    !html.startsWith('<pre') &&
     !html.startsWith('<blockquote') &&
     !html.startsWith('<hr') &&
     !html.startsWith('<ul') &&
     !html.startsWith('<ol') &&
-    !html.startsWith('<div class="overflow-x-auto')
+    !html.startsWith('<div class="overflow-x-auto') &&
+    !html.startsWith('\x00CODEBLOCK')
   ) {
     html = `<p class="mb-3 leading-relaxed text-gray-700 dark:text-gray-300">${html}</p>`
   }
@@ -244,8 +250,6 @@ const renderedContent = computed(() => {
   // 确保段落内的块级元素正确处理
   html = html.replace(/<p class="[^"]*">(<h[1-3])/g, '$1')
   html = html.replace(/(<\/h[1-3]>)<\/p>/g, '$1')
-  html = html.replace(/<p class="[^"]*">(<pre)/g, '$1')
-  html = html.replace(/(<\/pre>)<\/p>/g, '$1')
   html = html.replace(/<p class="[^"]*">(<blockquote)/g, '$1')
   html = html.replace(/(<\/blockquote>)<\/p>/g, '$1')
   html = html.replace(/<p class="[^"]*">(<hr)/g, '$1')
@@ -253,6 +257,25 @@ const renderedContent = computed(() => {
   html = html.replace(/(<\/[uo]l>)<\/p>/g, '$1')
   html = html.replace(/<p class="[^"]*">(<div)/g, '$1')
   html = html.replace(/(<\/div>)<\/p>/g, '$1')
+  // 代码块占位符从段落中提取
+  html = html.replace(/<p class="[^"]*">(\x00CODEBLOCK\d+\x00)/g, '$1')
+  html = html.replace(/(\x00CODEBLOCK\d+\x00)<\/p>/g, '$1')
+
+  // 还原行内代码
+  inlineCodes.forEach((code, index) => {
+    html = html.replace(
+      `\x00INLINECODE${index}\x00`,
+      `<code class="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded-md text-[0.9em] font-mono text-emerald-600 dark:text-emerald-400 border border-gray-200 dark:border-gray-700/50 align-middle">${code}</code>`
+    )
+  })
+
+  // 还原代码块
+  codeBlocks.forEach((code, index) => {
+    html = html.replace(
+      `\x00CODEBLOCK${index}\x00`,
+      `<pre class="custom-scrollbar not-prose bg-gray-900 text-gray-100 rounded-2xl p-4 my-3 overflow-x-auto shadow-sm border border-gray-800"><code class="block text-sm font-mono font-normal whitespace-pre">${code}</code></pre>`
+    )
+  })
 
   return html
 })
@@ -356,6 +379,11 @@ function processMarkdownTables(text: string): string {
 /* 第一个元素无上边距 */
 .markdown-content > :deep(*:first-child) {
   margin-top: 0;
+}
+
+/* 代码块内保持空白格式 */
+.markdown-content :deep(pre code) {
+  white-space: pre;
 }
 
 /* ========== 自定义滚动条样式 ========== */
