@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Activity, Github, Sun, Moon, Monitor } from 'lucide-vue-next'
+import { useDarkMode } from '../composables/useDarkMode'
 import type { User } from '../types'
 
 // ========== Props ==========
@@ -14,50 +15,15 @@ const props = defineProps<{
 const router = useRouter()
 
 // ========== 常量 ==========
-const APP_VERSION = '0.1.0'
+const APP_VERSION = __APP_VERSION__
 const GITHUB_URL = 'https://github.com/dogxii/pulse'
 
 // ========== 主题状态 ==========
-type ThemeMode = 'auto' | 'light' | 'dark'
-const themeMode = ref<ThemeMode>('auto')
+const { themeMode, cycleTheme: toggleTheme } = useDarkMode()
 
-// 从 localStorage 恢复主题设置
-onMounted(() => {
-  const savedTheme = localStorage.getItem('pulse_theme') as ThemeMode | null
-  if (savedTheme && ['auto', 'light', 'dark'].includes(savedTheme)) {
-    themeMode.value = savedTheme
-  }
-  applyTheme(themeMode.value)
-})
-
-// 应用主题
-function applyTheme(mode: ThemeMode) {
-  const root = document.documentElement
-  if (mode === 'dark') {
-    root.classList.add('dark')
-  } else if (mode === 'light') {
-    root.classList.remove('dark')
-  } else {
-    // auto: 根据系统偏好
-    if (globalThis.window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      root.classList.add('dark')
-    } else {
-      root.classList.remove('dark')
-    }
-  }
-}
-
-// 监听主题变化
-watch(themeMode, newMode => {
-  localStorage.setItem('pulse_theme', newMode)
-  applyTheme(newMode)
-})
-
-// 切换主题
+// 切换主题并显示提示
 function cycleTheme() {
-  const modes: ThemeMode[] = ['auto', 'light', 'dark']
-  const currentIndex = modes.indexOf(themeMode.value)
-  themeMode.value = modes[(currentIndex + 1) % modes.length] || 'auto'
+  toggleTheme()
   showToast()
 }
 

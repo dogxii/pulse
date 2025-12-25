@@ -10,6 +10,7 @@ import { Sun, Moon, Monitor, User as UserIcon, LogIn, RefreshCw, X } from 'lucid
 import UserCard from '../components/UserCard.vue'
 import UserWall from '../components/UserWall.vue'
 import { usePWA } from '../composables/usePWA'
+import { useDarkMode } from '../composables/useDarkMode'
 import type { User, Post } from '../types'
 
 // ========== Props ==========
@@ -60,61 +61,7 @@ const showMobileMenu = ref(false)
 const menuRef = ref<HTMLDivElement | null>(null)
 
 // ========== 主题状态 ==========
-type ThemeMode = 'auto' | 'light' | 'dark'
-const themeMode = ref<ThemeMode>('auto')
-
-// 从 localStorage 恢复主题设置
-onMounted(() => {
-  const savedTheme = localStorage.getItem('pulse_theme') as ThemeMode | null
-  if (savedTheme && ['auto', 'light', 'dark'].includes(savedTheme)) {
-    themeMode.value = savedTheme
-  }
-  applyTheme(themeMode.value)
-
-  // 添加点击外部关闭菜单的监听
-  globalThis.document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  globalThis.document.removeEventListener('click', handleClickOutside)
-})
-
-// 点击外部关闭菜单
-function handleClickOutside(event: globalThis.MouseEvent) {
-  if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
-    showMobileMenu.value = false
-  }
-}
-
-// 应用主题
-function applyTheme(mode: ThemeMode) {
-  const root = globalThis.document.documentElement
-  if (mode === 'dark') {
-    root.classList.add('dark')
-  } else if (mode === 'light') {
-    root.classList.remove('dark')
-  } else {
-    // auto: 根据系统偏好
-    if (globalThis.window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      root.classList.add('dark')
-    } else {
-      root.classList.remove('dark')
-    }
-  }
-}
-
-// 监听主题变化
-watch(themeMode, newMode => {
-  localStorage.setItem('pulse_theme', newMode)
-  applyTheme(newMode)
-})
-
-// 切换到下一个主题
-function cycleTheme() {
-  const modes: ThemeMode[] = ['auto', 'light', 'dark']
-  const currentIndex = modes.indexOf(themeMode.value)
-  themeMode.value = modes[(currentIndex + 1) % modes.length] || 'auto'
-}
+const { themeMode, cycleTheme } = useDarkMode()
 
 // 获取主题显示文本
 const themeDisplayText = computed(() => {
@@ -139,6 +86,22 @@ const ThemeIcon = computed(() => {
       return Monitor
   }
 })
+
+onMounted(() => {
+  // 添加点击外部关闭菜单的监听
+  globalThis.document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  globalThis.document.removeEventListener('click', handleClickOutside)
+})
+
+// 点击外部关闭菜单
+function handleClickOutside(event: globalThis.MouseEvent) {
+  if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
+    showMobileMenu.value = false
+  }
+}
 
 // ========== 事件处理 ==========
 
