@@ -5,7 +5,17 @@
 
 import { onMounted, ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Loader2, AlertCircle, Heart, MessageCircle, Send, Edit3 } from 'lucide-vue-next'
+import {
+  ArrowLeft,
+  Loader2,
+  AlertCircle,
+  Heart,
+  MessageCircle,
+  Send,
+  Edit3,
+  Trash2,
+  MoreHorizontal,
+} from 'lucide-vue-next'
 import { formatDistanceToNow } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useAuthStore } from '../stores/auth'
@@ -42,6 +52,9 @@ const isSubmittingComment = ref(false)
 const commentError = ref<string | null>(null)
 // 点赞动画状态
 const isLikeAnimating = ref(false)
+
+// 下拉菜单状态
+const showDropdown = ref(false)
 
 // ========== 灯箱状态 ==========
 const lightboxVisible = ref(false)
@@ -83,6 +96,14 @@ const isLiked = computed(() => {
 const isAuthor = computed(() => {
   if (!authStore.userId || !post.value) return false
   return post.value.user_id === authStore.userId
+})
+
+/**
+ * 当前用户是否可以编辑/删除帖子（作者或管理员）
+ */
+const canModifyPost = computed(() => {
+  if (!authStore.userId || !post.value) return false
+  return post.value.user_id === authStore.userId || authStore.isAdmin
 })
 
 /**
@@ -260,16 +281,66 @@ async function handleDeleteComment(commentId: string) {
  */
 function canDeleteComment(comment: Comment): boolean {
   if (!authStore.userId) return false
-  // 评论作者或帖子作者可以删除
-  return comment.user_id === authStore.userId || post.value?.user_id === authStore.userId
+  // 评论作者、帖子作者或管理员可以删除
+  return (
+    comment.user_id === authStore.userId ||
+    post.value?.user_id === authStore.userId ||
+    authStore.isAdmin
+  )
 }
 
 /**
  * 跳转到编辑页面
  */
 function handleEdit() {
+  showDropdown.value = false
   if (post.value) {
     router.push(`/post/${post.value.id}/edit`)
+  }
+}
+
+/**
+ * 切换下拉菜单
+ */
+function toggleDropdown() {
+  showDropdown.value = !showDropdown.value
+}
+
+/**
+ * 关闭下拉菜单
+ */
+function closeDropdown() {
+  showDropdown.value = false
+}
+
+/**
+ * 删除帖子
+ */
+const isDeleting = ref(false)
+
+async function handleDelete() {
+  showDropdown.value = false
+  if (!post.value || !canModifyPost.value) return
+
+  const confirmMessage =
+    authStore.isAdmin && !isAuthor.value
+      ? '您正在以管理员身份删除此帖子，确定要继续吗？'
+      : '确定要删除这篇帖子吗？此操作无法撤销。'
+
+  if (!globalThis.window.confirm(confirmMessage)) return
+
+  isDeleting.value = true
+
+  try {
+    await postsApi.delete(post.value.id)
+    // 从 store 中移除（使用 deletePost 会再次调用 API，所以这里手动移除）
+    postsStore.posts = postsStore.posts.filter(p => p.id !== post.value!.id)
+    // 返回首页
+    router.push('/')
+  } catch (e) {
+    globalThis.window.alert(e instanceof Error ? e.message : '删除失败')
+  } finally {
+    isDeleting.value = false
   }
 }
 
@@ -277,7 +348,8 @@ function handleEdit() {
  * 返回上一页
  */
 function goBack() {
-  router.back()
+  // 直接返回首页，避免多次返回
+  router.push('/')
 }
 
 /**
@@ -350,30 +422,71 @@ watch(
 
 <template>
   <div class="min-h-screen bg-gray-50/50 dark:bg-[#0f0f0f] transition-colors duration-300">
-    <div class="max-w-2xl mx-auto px-4 py-8">
-      <!-- 头部 -->
-      <div class="flex items-center justify-between mb-8">
-        <div class="flex items-center gap-4">
-          <button
-            class="p-2 rounded-xl hover:bg-white dark:hover:bg-gray-800 transition-colors cursor-pointer"
-            @click="goBack"
-          >
-            <ArrowLeft :size="20" class="text-gray-600 dark:text-gray-400" />
-          </button>
-          <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">动态详情</h1>
+    <!-- 固定头部 -->
+    <div
+      class="sticky top-0 z-40 bg-gray-50/95 dark:bg-[#0f0f0f]/95 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800"
+    >
+      <div class="max-w-2xl mx-auto px-4">
+        <div class="flex items-center justify-between h-14">
+          <div class="flex items-center gap-3">
+            <button
+              class="p-2 -ml-2 rounded-xl hover:bg-white dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              @click="goBack"
+            >
+              <ArrowLeft :size="20" class="text-gray-600 dark:text-gray-400" />
+            </button>
+            <h1 class="text-lg font-bold text-gray-900 dark:text-gray-100">动态详情</h1>
+          </div>
+
+          <!-- 更多操作下拉菜单（作者或管理员可见） -->
+          <div v-if="canModifyPost && post" class="relative">
+            <button
+              class="p-2 rounded-xl hover:bg-white dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              @click="toggleDropdown"
+            >
+              <MoreHorizontal :size="20" class="text-gray-600 dark:text-gray-400" />
+            </button>
+
+            <!-- 下拉菜单 -->
+            <Transition
+              enter-active-class="transition ease-out duration-100"
+              enter-from-class="transform opacity-0 scale-95"
+              enter-to-class="transform opacity-100 scale-100"
+              leave-active-class="transition ease-in duration-75"
+              leave-from-class="transform opacity-100 scale-100"
+              leave-to-class="transform opacity-0 scale-95"
+            >
+              <div
+                v-if="showDropdown"
+                class="absolute right-0 mt-2 w-36 bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-gray-950/50 border border-gray-100 dark:border-gray-700 overflow-hidden"
+              >
+                <button
+                  class="w-full flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer text-sm"
+                  @click="handleEdit"
+                >
+                  <Edit3 :size="16" />
+                  <span>编辑</span>
+                </button>
+                <button
+                  class="w-full flex items-center gap-3 px-4 py-3 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer text-sm disabled:opacity-50"
+                  :disabled="isDeleting"
+                  @click="handleDelete"
+                >
+                  <Loader2 v-if="isDeleting" :size="16" class="animate-spin" />
+                  <Trash2 v-else :size="16" />
+                  <span>{{ isDeleting ? '删除中...' : '删除' }}</span>
+                </button>
+              </div>
+            </Transition>
+
+            <!-- 点击外部关闭下拉菜单 -->
+            <div v-if="showDropdown" class="fixed inset-0 z-[-1]" @click="closeDropdown" />
+          </div>
         </div>
-
-        <!-- 编辑按钮（仅作者可见） -->
-        <button
-          v-if="isAuthor && post"
-          class="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-white dark:hover:bg-gray-800 rounded-xl transition-colors cursor-pointer"
-          @click="handleEdit"
-        >
-          <Edit3 :size="18" />
-          <span class="text-sm font-medium">编辑</span>
-        </button>
       </div>
+    </div>
 
+    <div class="max-w-2xl mx-auto px-4 py-6">
       <!-- 加载状态 -->
       <div v-if="isLoading" class="py-20 text-center">
         <Loader2 class="w-8 h-8 animate-spin text-gray-400 dark:text-gray-500 mx-auto mb-4" />

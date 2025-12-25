@@ -328,7 +328,10 @@ export const posts = {
 	/**
 	 * 更新帖子
 	 */
-	async update(id: string, data: { content: string }): Promise<Post> {
+	async update(
+		id: string,
+		data: { content: string; images?: string[] },
+	): Promise<Post> {
 		const response = await fetchAPI<APIResponse<Post>>(`/posts/${id}`, {
 			method: "PATCH",
 			body: JSON.stringify(data),

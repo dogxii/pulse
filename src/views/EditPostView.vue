@@ -79,8 +79,8 @@ async function fetchPost() {
       postsStore.setCachedPost(fetchedPost)
     }
 
-    // Check if current user is the author
-    if (fetchedPost.user_id !== authStore.userId) {
+    // Check if current user is the author or admin
+    if (fetchedPost.user_id !== authStore.userId && !authStore.isAdmin) {
       loadError.value = '你只可以编辑你自己的帖子'
       return
     }
@@ -204,13 +204,14 @@ async function handleSubmit() {
   try {
     const updatedPost = await postsApi.update(post.value.id, {
       content: content.value.trim(),
+      images: images.value.length > 0 ? images.value : undefined,
     })
 
     // Update store cache with the updated post
     postsStore.updatePost(updatedPost)
 
-    // Navigate back to the post detail
-    router.push(`/post/${post.value.id}`)
+    // Navigate back to the post detail (use replace to fix back navigation)
+    router.replace(`/post/${post.value.id}`)
   } catch (e) {
     error.value = e instanceof Error ? e.message : '更新帖子失败'
     isSubmitting.value = false
@@ -332,7 +333,13 @@ onMounted(async () => {
               <span class="font-bold text-gray-900 dark:text-gray-100 text-sm">
                 {{ authStore.currentUser?.username }}
               </span>
-              <p class="text-xs text-gray-400 dark:text-gray-500">Editing post</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500">
+                {{
+                  authStore.isAdmin && post?.user_id !== authStore.userId
+                    ? '管理员编辑'
+                    : '编辑帖子'
+                }}
+              </p>
             </div>
           </div>
 
