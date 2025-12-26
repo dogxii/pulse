@@ -10,7 +10,7 @@ let STATIC_CACHE_NAME = `pulse-static-${CACHE_VERSION}`;
 let DYNAMIC_CACHE_NAME = `pulse-dynamic-${CACHE_VERSION}`;
 let IMAGE_CACHE_NAME = `pulse-images-${CACHE_VERSION}`;
 
-// 静态资源（预缓存）
+// 静态资源（预缓存）- 只缓存不会变化的资源
 const STATIC_ASSETS = ["/favicon.svg", "/guest.svg", "/manifest.json"];
 
 // 图片域名白名单
@@ -154,7 +154,15 @@ function isHashedAsset(url) {
 }
 
 /**
- * 网络优先策略（用于 API 请求和 HTML 页面）
+ * 检查响应是否为 HTML（可能是 SPA fallback 错误）
+ */
+function isHtmlResponse(response) {
+	const contentType = response.headers.get("Content-Type");
+	return contentType && contentType.includes("text/html");
+}
+
+/**
+ * 网络优先策略（用于 API 请求）
  * 总是尝试获取最新内容，失败时才使用缓存
  */
 async function networkFirst(request, cacheName = DYNAMIC_CACHE_NAME) {
@@ -176,17 +184,6 @@ async function networkFirst(request, cacheName = DYNAMIC_CACHE_NAME) {
 			return cached;
 		}
 
-		// 对于 HTML 页面，返回根页面（SPA fallback）
-		if (
-			request.mode === "navigate" ||
-			request.headers.get("Accept")?.includes("text/html")
-		) {
-			const fallback = await caches.match("/");
-			if (fallback) {
-				return fallback;
-			}
-		}
-
 		// 返回离线响应
 		return new Response(
 			JSON.stringify({
@@ -202,17 +199,86 @@ async function networkFirst(request, cacheName = DYNAMIC_CACHE_NAME) {
 }
 
 /**
+ * 网络优先策略（用于 HTML 页面导航）
+ * 总是从网络获取最新 HTML，确保引用正确的资源文件
+ */
+async function networkFirstForNavigation(request) {
+	try {
+		const response = await fetch(request);
+
+		// 缓存成功的 HTML 响应
+		if (response.ok) {
+			const cache = await caches.open(DYNAMIC_CACHE_NAME);
+			cache.put(request, response.clone());
+		}
+
+		return response;
+	} catch (error) {
+		// 网络失败，尝试从缓存获取
+		const cached = await caches.match(request);
+		if (cached) {
+			console.log("[SW] 使用缓存 HTML（离线）:", request.url);
+			return cached;
+		}
+
+		// 尝试返回缓存的根页面
+		const fallback = await caches.match("/");
+		if (fallback) {
+			return fallback;
+		}
+
+		// 返回离线页面
+		return new Response(
+			`<!DOCTYPE html>
+			<html>
+			<head><title>离线</title><meta charset="utf-8"></head>
+			<body style="font-family: system-ui; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
+				<div style="text-align: center;">
+					<h1>您当前处于离线状态</h1>
+					<p>请检查网络连接后重试</p>
+					<button onclick="location.reload()" style="padding: 10px 20px; cursor: pointer;">重试</button>
+				</div>
+			</body>
+			</html>`,
+			{
+				status: 503,
+				headers: { "Content-Type": "text/html; charset=utf-8" },
+			},
+		);
+	}
+}
+
+/**
  * 缓存优先策略（用于带 hash 的静态资源和图片）
  * 这些资源内容不会变化，可以长期缓存
+ * 重要：如果服务器返回 HTML（SPA fallback），说明资源不存在，不缓存
  */
 async function cacheFirst(request, cacheName = STATIC_CACHE_NAME) {
 	const cached = await caches.match(request);
 	if (cached) {
-		return cached;
+		// 验证缓存的资源类型是否正确（不是 HTML）
+		if (!isHtmlResponse(cached)) {
+			return cached;
+		}
+		// 缓存的是 HTML，删除它（之前缓存了错误的响应）
+		const cache = await caches.open(cacheName);
+		await cache.delete(request);
+		console.log("[SW] 删除错误缓存（HTML）:", request.url);
 	}
 
 	try {
 		const response = await fetch(request);
+
+		// 检查响应是否为 HTML（SPA fallback 错误）
+		// 对于带 hash 的 JS/CSS 资源，如果返回 HTML 说明文件不存在
+		if (isHtmlResponse(response)) {
+			console.warn("[SW] 资源不存在，服务器返回了 HTML:", request.url);
+			// 不缓存这个响应，返回错误让浏览器处理
+			return new Response("Resource not found", {
+				status: 404,
+				statusText: "Not Found",
+			});
+		}
 
 		// 缓存成功的响应
 		if (response.ok) {
@@ -255,6 +321,13 @@ async function networkFirstWithTimeout(
 			const response = await fetch(request);
 			clearTimeout(timeoutId);
 
+			// 检查响应是否为 HTML（SPA fallback 错误）
+			if (isStaticAsset(new URL(request.url)) && isHtmlResponse(response)) {
+				console.warn("[SW] 静态资源不存在:", request.url);
+				reject(new Error("Resource returned HTML instead of expected type"));
+				return;
+			}
+
 			// 缓存成功的响应
 			if (response.ok) {
 				const cache = await caches.open(cacheName);
@@ -272,7 +345,7 @@ async function networkFirstWithTimeout(
 		return await fetchPromise;
 	} catch (error) {
 		// 网络失败或超时，使用缓存
-		if (cached) {
+		if (cached && !isHtmlResponse(cached)) {
 			console.log("[SW] 网络超时，使用缓存:", request.url);
 			return cached;
 		}
@@ -304,6 +377,13 @@ self.addEventListener("fetch", (event) => {
 		return;
 	}
 
+	// 页面导航（HTML）- 始终网络优先，确保获取最新 HTML
+	// 这是最重要的，因为 HTML 决定了加载哪些资源
+	if (event.request.mode === "navigate") {
+		event.respondWith(networkFirstForNavigation(event.request));
+		return;
+	}
+
 	// API 请求 - 网络优先
 	if (isApiRequest(url)) {
 		event.respondWith(networkFirst(event.request));
@@ -317,6 +397,7 @@ self.addEventListener("fetch", (event) => {
 	}
 
 	// 带 hash 的静态资源 - 缓存优先（内容不变）
+	// 但会检测 SPA fallback 错误
 	if (isHashedAsset(url)) {
 		event.respondWith(cacheFirst(event.request, STATIC_CACHE_NAME));
 		return;
@@ -327,12 +408,6 @@ self.addEventListener("fetch", (event) => {
 		event.respondWith(
 			networkFirstWithTimeout(event.request, STATIC_CACHE_NAME, 2000),
 		);
-		return;
-	}
-
-	// 页面导航（HTML）- 始终网络优先
-	if (event.request.mode === "navigate") {
-		event.respondWith(networkFirst(event.request, DYNAMIC_CACHE_NAME));
 		return;
 	}
 
