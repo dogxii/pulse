@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v1.1.2
+
+[compare changes](https://github.com/dogxii/pulse/compare/v1.1.0...v1.1.2)
+
+### 🏡 Chore
+
+- Update ESLint rules and improve service worker caching ([0c1e038](https://github.com/dogxii/pulse/commit/0c1e038))
+
+### ❤️ Contributors
+
+- Dogxi ([@dogxii](https://github.com/dogxii))
+
 ## v1.1.0
 
 
